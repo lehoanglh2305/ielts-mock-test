@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Listening · IELTS Mock Test</title>
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <section class="card" id="intro">
+    <span class="stamp">Listening · 4 phần · 40 câu</span>
+    <h2 style="margin-top:10px">Phần Nghe</h2>
+    <ul class="clean" style="margin:12px 0">
+      <li>Bài nghe có 4 phần, khoảng 25 đến 30 phút, chỉ phát <b>một lần</b> và không tua được.</li>
+      <li>Trước mỗi phần có thời gian đọc câu hỏi. Bạn trả lời ngay trong lúc nghe.</li>
+      <li>Hết audio, bạn có 2 phút để kiểm tra rồi bài sẽ tự nộp.</li>
+      <li>Hãy đeo tai nghe và bấm Kiểm tra âm thanh trước khi bắt đầu.</li>
+    </ul>
+    <div class="row"><button class="btn ghost" id="check">Kiểm tra âm thanh</button><button class="btn blue" id="begin">Bắt đầu nghe</button></div>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+  </section>
+
+  <section class="card player" id="player" hidden>
+    <div class="row" style="justify-content:space-between"><b id="pstat">Đang tải audio...</b><span class="small num" id="ptime"></span></div>
+    <div class="prog" aria-hidden="true"><b id="pbar"></b></div>
+    <div class="row"><button class="btn" id="resume" hidden>Tiếp tục nghe</button><button class="btn ghost" id="submitBtn" hidden>Nộp bài</button></div>
+    <p class="msg err" id="perr" hidden></p>
+  </section>
+
+  <div id="qs" class="exam"></div>
+  <div id="done"></div>
+</main>
+<nav class="qnav" id="qnav" hidden><div class="nums" id="nums"></div></nav>
+<audio id="au" preload="auto"></audio>
+<script src="assets/content.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$, sk = 'L';
+  var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
+  T.bar('Listening · Nghe');
+  var key = T.draftKey(s.code, sk), draft = T.ls(key) || { answers: {}, part: 0, pos: 0, meta: {} };
+  var answers = draft.answers, ids = null, au = $('#au'), durs = [0, 0, 0, 0], review = null, submitting = false;
+  T.watchBlur(draft.meta);
+  function save() { T.ls(key, draft); }
+  setInterval(save, 3000);
+
+  $('#check').onclick = function () { var a = new Audio('audio/soundcheck.mp3'); a.play().catch(function () {}); };
+
+  function render() {
+    var h = '';
+    ids.forEach(function (id, i) {
+      var it = BANK.L[id];
+      h += '<section class="card qsec" id="part' + i + '"><h3>Part ' + (i + 1) + '</h3>' + T.renderGroups(it.groups) + '</section>';
+    });
+    $('#qs').innerHTML = h;
+    T.restoreAnswers($('#qs'), answers);
+    var upd = T.qnav($('#nums'), answers, 1, 40, function (n) { var el = document.getElementById('w' + n) || document.getElementById('q' + n); el && el.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+    T.bindAnswers($('#qs'), answers, function () { save(); upd(); });
+    upd(); $('#qnav').hidden = false;
+    ids.forEach(function (id, i) { var a = new Audio(); a.preload = 'metadata'; a.src = BANK.L[id].audio; a.addEventListener('loadedmetadata', function () { durs[i] = a.duration || 0; tick(); }); });
+  }
+
+  function remaining() {
+    var left = 0; for (var i = draft.part; i < 4; i++) left += durs[i] || 0;
+    return Math.max(0, left - (au.currentTime || 0));
+  }
+  function tick() {
+    if (draft.ended) return;
+    var tot = durs.reduce(function (a, b) { return a + b; }, 0), done = 0;
+    for (var i = 0; i < draft.part; i++) done += durs[i];
+    done += au.currentTime || 0;
+    $('#pbar').style.width = tot ? (done / tot * 100) + '%' : '0';
+    $('#ptime').textContent = tot ? 'Còn khoảng ' + T.fmt(remaining()) + ' audio' : '';
+    var tm = $('#timer'); if (tot) { tm.classList.remove('idle'); tm.textContent = T.fmt(remaining() + 120); }
+  }
+  function mark() {
+    T.$$('.qsec').forEach(function (el, i) { el.classList.toggle('now', i === draft.part); });
+    var cur = $('#part' + draft.part); cur && cur.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#pstat').textContent = 'Đang phát Part ' + (draft.part + 1);
+  }
+  function play(seek) {
+    var id = ids[draft.part];
+    if (au.getAttribute('src') !== BANK.L[id].audio) au.src = BANK.L[id].audio;
+    var go = function () {
+      if (seek) { try { au.currentTime = seek; } catch (e) {} }
+      au.play().then(function () { $('#resume').hidden = true; $('#perr').hidden = true; mark(); })
+        .catch(function () { $('#resume').hidden = false; $('#pstat').textContent = 'Bấm Tiếp tục nghe để phát audio'; });
+    };
+    if (au.readyState >= 1) go(); else au.addEventListener('loadedmetadata', go, { once: true });
+  }
+  au.addEventListener('timeupdate', function () { draft.pos = au.currentTime; tick(); });
+  au.addEventListener('ended', function () {
+    draft.part++; draft.pos = 0; save();
+    if (draft.part < 4) play(0); else startReview();
+  });
+  au.addEventListener('error', function () { $('#perr').textContent = 'Không tải được audio. Kiểm tra mạng rồi bấm Tiếp tục nghe.'; $('#perr').hidden = false; $('#resume').hidden = false; });
+  au.addEventListener('pause', function () { if (!au.ended && !draft.ended && !submitting) { $('#resume').hidden = false; } });
+  $('#resume').onclick = function () { play(draft.pos); };
+
+  function startReview() {
+    draft.ended = true; if (!draft.reviewEnd) draft.reviewEnd = Date.now() + 120000; save();
+    $('#pstat').textContent = 'Đã hết audio. Kiểm tra lại câu trả lời.'; $('#pbar').style.width = '100%'; $('#ptime').textContent = '';
+    T.$$('.qsec').forEach(function (el) { el.classList.remove('now'); });
+    $('#submitBtn').hidden = false;
+    review = T.Timer($('#timer'), draft.reviewEnd, function () { submit(true); }, 60);
+  }
+
+  function submit(auto) {
+    if (submitting) return;
+    var go = function () {
+      submitting = true; au.pause(); review && review.stop();
+      $('#submitBtn').disabled = true; $('#pstat').textContent = 'Đang nộp bài...';
+      var send = function () {
+        T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
+          if (!r.ok) { $('#perr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#perr').hidden = false; $('#submitBtn').disabled = false; submitting = false; $('#submitBtn').textContent = 'Gửi lại'; return; }
+          T.ls(key, null);
+          $('#qs').innerHTML = ''; $('#player').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
+          $('#done').innerHTML = '<div style="display:grid;gap:16px">' + T.resultCard(sk, r, 40) + T.nextStep(sk) + '</div>';
+          window.scrollTo(0, 0);
+        });
+      };
+      send();
+    };
+    if (auto) go(); else T.confirm('Nộp bài Nghe?', 'Sau khi nộp, bạn không sửa được câu trả lời.', 'Nộp bài').then(function (y) { if (y) go(); });
+  }
+  $('#submitBtn').onclick = function () { submit(false); };
+
+  function begin(isResume) {
+    $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
+      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu nghe';
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
+      ids = r.ids; draft.started = true; save();
+      $('#intro').hidden = true; $('#player').hidden = false;
+      render();
+      if (draft.ended) startReview();
+      else if (draft.part > 0 || draft.pos > 0) { $('#resume').hidden = false; $('#pstat').textContent = 'Bài đang làm dở. Bấm Tiếp tục nghe.'; au.src = BANK.L[ids[draft.part]].audio; }
+      else play(0);
+    });
+  }
+  $('#begin').onclick = function () { begin(false); };
+  if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Nghe đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }
+})();
+</script>
+</body>
+</html>

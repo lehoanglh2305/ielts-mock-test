@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kết quả · IELTS Mock Test</title>
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap" style="padding-top:16px">
+  <a href="index.html" aria-label="Trang chính"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96" style="height:30px"></a>
+  <section class="card">
+    <h2>Xem kết quả</h2>
+    <div class="row" style="margin-top:12px"><input class="input codein" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="ABC234" aria-label="Mã vào thi"><button class="btn" id="go">Xem</button></div>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+  </section>
+  <div id="out" style="display:grid;gap:16px"></div>
+  <a class="btn ghost" href="index.html" style="justify-self:start">Về trang chính</a>
+</main>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$;
+  var s = T.session(); if (s && s.code) $('#code').value = s.code;
+  function row(label, val, sub) { return '<div class="tile ' + label + '" style="pointer-events:none"><span class="stamp">' + T.SK[label] + '</span><h3>' + val + '</h3><span>' + (sub || '') + '</span></div>'; }
+  $('#go').onclick = function () {
+    var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true; $('#out').innerHTML = '';
+    T.api('result', { code: c }).then(function (r) {
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; return; }
+      var x = r.res, st = r.st || {}, h = '';
+      var stv = function (sk) { var v = (st[sk] || {}).s || 'open'; return v === 'open' ? 'Chưa làm' : v === 'started' ? 'Đang làm dở' : ''; };
+      h += '<section class="result"><span class="stamp">' + T.esc(r.name) + (r.cls ? ' · ' + T.esc(r.cls) : '') + '</span><p class="big">' + (typeof x.overall === 'number' ? 'Overall ' + x.overall.toFixed(1) : 'Chưa đủ 4 kỹ năng') + '</p>' +
+        '<p>' + (typeof x.overall === 'number' ? 'Điểm tổng là trung bình 4 kỹ năng, làm tròn đến 0.5 gần nhất.' : 'Điểm tổng sẽ hiện khi có đủ điểm Nghe, Đọc, Viết và Nói.') + '</p></section>';
+      h += '<div class="tiles">';
+      h += row('L', x.L ? 'Band ' + T.bandText(x.L.band) : stv('L'), x.L ? x.L.raw + ' trên 40 câu đúng' : '');
+      h += row('R', x.R ? 'Band ' + T.bandText(x.R.band) : stv('R'), x.R ? x.R.raw + ' trên 40 câu đúng' : '');
+      h += row('W', x.W ? (typeof x.W.band === 'number' ? 'Band ' + T.bandText(x.W.band) : 'Chờ chấm') : stv('W'), x.W && typeof x.W.t1 === 'number' ? 'Task 1: ' + x.W.t1.toFixed(1) + ' · Task 2: ' + (typeof x.W.t2 === 'number' ? x.W.t2.toFixed(1) : '...') : '');
+      h += row('S', x.S ? (typeof x.S.band === 'number' ? 'Band ' + T.bandText(x.S.band) : 'Chờ chấm') : stv('S'), '');
+      h += '</div>';
+      if (x.W && x.W.comment) h += '<section class="card"><h2>Nhận xét phần Viết</h2><p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.W.comment) + '</p></section>';
+      if (x.S && x.S.comment) h += '<section class="card"><h2>Nhận xét phần Nói</h2>' + (x.S.crit ? '<p class="small" style="margin-top:6px">Fluency and Coherence ' + x.S.crit.fc + ' · Lexical Resource ' + x.S.crit.lr + ' · Grammar ' + x.S.crit.gra + ' · Pronunciation ' + x.S.crit.p + '</p>' : '') + '<p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.S.comment) + '</p></section>';
+      $('#out').innerHTML = h;
+    });
+  };
+  $('#code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#go').click(); });
+  if ($('#code').value) $('#go').click();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Speaking · IELTS Mock Test</title>
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap">
+  <section class="card" id="intro">
+    <span class="stamp">Speaking · 3 phần · 11 đến 14 phút</span>
+    <h2 style="margin-top:10px">Phần Nói</h2>
+    <ul class="clean" style="margin:12px 0">
+      <li><b>Part 1:</b> giám khảo hỏi về các chủ đề quen thuộc. Trả lời mỗi câu khoảng 20 đến 30 giây.</li>
+      <li><b>Part 2:</b> bạn có 1 phút chuẩn bị, sau đó nói 1 đến 2 phút về chủ đề trên thẻ.</li>
+      <li><b>Part 3:</b> thảo luận các câu hỏi chung hơn, liên quan đến chủ đề Part 2.</li>
+      <li>Bài nói được ghi âm và gửi cho giáo viên. Hãy ngồi ở chỗ yên tĩnh và cho phép trang dùng micro.</li>
+    </ul>
+    <h3 style="font:700 20px var(--display);margin-bottom:8px">Bước 1. Kiểm tra micro</h3>
+    <div class="row"><button class="btn ghost" id="mic">Bật micro</button><span class="small" id="micst">Chưa bật micro</span></div>
+    <div class="meter" style="margin:10px 0" aria-hidden="true"><b id="lvl"></b></div>
+    <div class="row"><button class="btn ghost" id="test" disabled>Ghi thử 5 giây</button><audio id="testau" controls hidden></audio></div>
+    <h3 style="font:700 20px var(--display);margin:16px 0 8px">Bước 2. Bắt đầu thi</h3>
+    <button class="btn blue" id="begin" disabled>Bắt đầu phần Nói</button>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+  </section>
+
+  <section id="exam" hidden style="display:grid;gap:14px">
+    <div class="steps" id="steps"><span data-p="1">Part 1</span><span data-p="2">Part 2</span><span data-p="3">Part 3</span></div>
+    <div class="row" style="justify-content:space-between"><span class="rec" id="rec" hidden><i></i>Đang ghi âm <span class="num" id="recT">0:00</span></span><span class="small" id="pinfo"></span></div>
+    <div class="qcard" id="qcard"></div>
+    <div id="cue" hidden></div>
+    <div class="row" id="ctrl"></div>
+    <div id="ups" class="small"></div>
+    <p class="msg err" id="serr" hidden></p>
+  </section>
+  <div id="done"></div>
+</main>
+<audio id="au"></audio>
+<script src="assets/content.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$, sk = 'S';
+  var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
+  T.bar('Speaking · Nói');
+  var key = T.draftKey(s.code, sk), draft = T.ls(key) || { parts: {}, meta: {} };
+  function save() { T.ls(key, draft); }
+  var stream = null, ac = null, set = null, rec = null, chunks = [], recStart = 0, recIv = null, ups = {}, au = $('#au');
+  var MIME = (function () {
+    if (!window.MediaRecorder) return null;
+    var c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+    for (var i = 0; i < c.length; i++) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c[i])) return c[i];
+    return '';
+  })();
+
+  /* ---------- microphone ---------- */
+  $('#mic').onclick = function () {
+    if (MIME === null) { $('#micst').textContent = 'Trình duyệt này không ghi âm được. Hãy dùng Chrome hoặc Safari bản mới.'; return; }
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (st) {
+      stream = st; $('#micst').textContent = 'Micro đã bật. Hãy nói thử, thanh màu xanh sẽ chạy.';
+      $('#mic').disabled = true; $('#test').disabled = false; $('#begin').disabled = false;
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        var an = ac.createAnalyser(); an.fftSize = 512; ac.createMediaStreamSource(st).connect(an);
+        var buf = new Uint8Array(an.fftSize);
+        (function loop() { an.getByteTimeDomainData(buf); var m = 0; for (var i = 0; i < buf.length; i++) m = Math.max(m, Math.abs(buf[i] - 128)); $('#lvl').style.width = Math.min(100, m * 1.6) + '%'; requestAnimationFrame(loop); })();
+      } catch (e) {}
+    }).catch(function () { $('#micst').textContent = 'Không bật được micro. Hãy cho phép trang dùng micro trong cài đặt trình duyệt rồi tải lại trang.'; });
+  };
+  $('#test').onclick = function () {
+    var r = new MediaRecorder(stream, MIME ? { mimeType: MIME } : undefined), c = [];
+    r.ondataavailable = function (e) { if (e.data.size) c.push(e.data); };
+    r.onstop = function () { var a = $('#testau'); a.src = URL.createObjectURL(new Blob(c, { type: r.mimeType })); a.hidden = false; $('#test').disabled = false; $('#test').textContent = 'Ghi thử lại'; };
+    r.start(); $('#test').disabled = true; $('#test').textContent = 'Đang ghi thử...';
+    setTimeout(function () { r.stop(); }, 5000);
+  };
+
+  /* ---------- recording per part ---------- */
+  function startRec() {
+    chunks = []; rec = new MediaRecorder(stream, Object.assign(MIME ? { mimeType: MIME } : {}, { audioBitsPerSecond: 32000 }));
+    rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
+    rec.start(1000); recStart = Date.now(); $('#rec').hidden = false;
+    recIv = setInterval(function () { $('#recT').textContent = T.fmt((Date.now() - recStart) / 1000); }, 500);
+  }
+  function stopRec(part) {
+    return new Promise(function (res) {
+      if (!rec || rec.state === 'inactive') return res();
+      rec.onstop = function () {
+        clearInterval(recIv); $('#rec').hidden = true;
+        var blob = new Blob(chunks, { type: rec.mimeType || MIME || 'audio/webm' });
+        upload(part, blob, Math.round((Date.now() - recStart) / 1000)); res();
+      };
+      rec.stop();
+    });
+  }
+  function upStatus() {
+    var h = '';
+    [1, 2, 3].forEach(function (p) {
+      var u = ups[p]; if (!u) return;
+      h += '<p>Part ' + p + ': ' + (u.st === 'ok' ? 'đã gửi cho giáo viên ✓' : u.st === 'sending' ? 'đang gửi...' : 'gửi chưa được. <button class="btn ghost" style="min-height:36px;padding:0 12px" data-retry="' + p + '">Gửi lại</button> <a href="' + u.url + '" download="Speaking Part ' + p + '">Tải file về máy</a>') + '</p>';
+    });
+    $('#ups').innerHTML = h;
+  }
+  $('#ups').onclick = function (e) { var p = e.target.getAttribute('data-retry'); if (p) send(+p); };
+  function upload(part, blob, sec) {
+    ups[part] = { blob: blob, sec: sec, st: 'sending', url: URL.createObjectURL(blob), tries: 0 };
+    send(part);
+  }
+  function send(part) {
+    var u = ups[part]; u.st = 'sending'; u.tries++; upStatus();
+    var fr = new FileReader();
+    fr.onload = function () {
+      var b64 = String(fr.result).split(',')[1] || '';
+      T.api('upload', { code: s.code, part: part, mime: u.blob.type, data: b64, sec: u.sec, dev: T.dev() }, 120000).then(function (r) {
+        if (r.ok) { u.st = 'ok'; draft.parts[part] = 'up'; save(); }
+        else { u.st = 'fail'; if (u.tries < 3 && r.error === 'network') { setTimeout(function () { send(part); }, 3000); } }
+        upStatus(); maybeFinish();
+      });
+    };
+    fr.readAsDataURL(u.blob);
+  }
+
+  /* ---------- exam flow ---------- */
+  function playClip(src) {
+    return new Promise(function (res) {
+      au.onended = res; au.onerror = res; au.src = src;
+      au.play().catch(function () { res(); });
+    });
+  }
+  function card(text) { var c = $('#qcard'); c.textContent = text; c.classList.remove('in'); void c.offsetWidth; c.classList.add('in'); c.hidden = false; }
+  function steps(p) { T.$$('#steps span').forEach(function (x) { var n = +x.getAttribute('data-p'); x.className = n < p || draft.parts[n] ? 'done' : n === p ? 'on' : ''; }); }
+  function ctrl(html) { $('#ctrl').innerHTML = html; }
+
+  function qa(part, qs, clips, intro, cap) {
+    return new Promise(function (res) {
+      steps(part); $('#cue').hidden = true; var i = 0, capT;
+      $('#pinfo').textContent = 'Part ' + part + ' · ' + qs.length + ' câu hỏi';
+      function next() {
+        if (i >= qs.length) { clearTimeout(capT); ctrl(''); card('Hết Part ' + part + '. Đang lưu bài nói...'); stopRec(part).then(res); return; }
+        card(qs[i]); ctrl('<button class="btn" id="nx" disabled>' + (i === qs.length - 1 ? 'Kết thúc Part ' + part : 'Câu tiếp theo') + '</button><span class="small">Câu ' + (i + 1) + ' trên ' + qs.length + '</span>');
+        var src = clips[i]; i++;
+        playClip(src).then(function () { var b = $('#nx'); if (b) { b.disabled = false; b.onclick = next; } });
+      }
+      var go = function () { startRec(); capT = setTimeout(function () { i = qs.length; next(); }, cap * 1000); next(); };
+      if (intro) { card('Part ' + part); playClip(intro).then(go); } else go();
+    });
+  }
+
+  function part2(S) {
+    return new Promise(function (res) {
+      steps(2); $('#pinfo').textContent = 'Part 2 · thẻ chủ đề';
+      card('Part 2: 1 phút chuẩn bị, sau đó nói 1 đến 2 phút.');
+      var p = S.p2, cue = '<div class="cue"><h3>' + T.esc(p.title) + '</h3><p>You should say:</p><ul class="clean">' + p.points.map(function (x) { return '<li>' + T.esc(x) + '</li>'; }).join('') + '</ul><p>' + T.esc(p.explain) + '</p></div>' +
+        '<label class="small" for="notes" style="display:block;margin-top:10px">Ghi chú nhanh (không được gửi đi)</label><textarea class="essay" id="notes" style="min-height:120px"></textarea>';
+      $('#cue').innerHTML = cue; $('#cue').hidden = false;
+      ctrl('');
+      playClip(S.audio.p2intro).then(function () {
+        var end = Date.now() + 60000;
+        ctrl('<b class="num" id="prep">1:00</b><span class="small">thời gian chuẩn bị</span><button class="btn ghost" id="ready">Tôi sẵn sàng nói</button>');
+        var iv = setInterval(function () { var l = (end - Date.now()) / 1000; $('#prep').textContent = T.fmt(l); if (l <= 0) speak(); }, 250);
+        $('#ready').onclick = speak;
+        var started = false;
+        function speak() {
+          if (started) return; started = true; clearInterval(iv); ctrl('');
+          playClip(S.audio.p2start).then(function () {
+            startRec(); card('Hãy nói về chủ đề trên thẻ. Tối đa 2 phút.');
+            var stopAt = Date.now() + 120000;
+            ctrl('<b class="num" id="spk">2:00</b><span class="small">thời gian nói còn lại</span><button class="btn" id="fin">Kết thúc Part 2</button>');
+            var iv2 = setInterval(function () { var l = (stopAt - Date.now()) / 1000; $('#spk').textContent = T.fmt(l); if (l <= 0) finish(); }, 250);
+            var done = false;
+            function finish() {
+              if (done) return; done = true; clearInterval(iv2); ctrl(''); $('#cue').hidden = true;
+              card(p.followup);
+              playClip(S.audio.p2follow).then(function () {
+                ctrl('<button class="btn" id="fin2">Sang Part 3</button><span class="small">Trả lời ngắn câu hỏi trên, rồi bấm nút</span>');
+                $('#fin2').onclick = function () { ctrl(''); card('Hết Part 2. Đang lưu bài nói...'); stopRec(2).then(res); };
+              });
+            }
+            $('#fin').onclick = function () {
+              if ((Date.now() - recStart) < 60000) T.confirm('Kết thúc Part 2?', 'Bạn mới nói chưa đến 1 phút. Bài thi thật yêu cầu nói 1 đến 2 phút.', 'Kết thúc').then(function (y) { if (y) finish(); });
+              else finish();
+            };
+          });
+        }
+      });
+    });
+  }
+
+  var finishing = false;
+  function maybeFinish() {
+    if (!draft.allDone || finishing) return;
+    var pending = [1, 2, 3].filter(function (p) { return ups[p] && ups[p].st !== 'ok'; });
+    if (pending.length) { ctrl('<span class="small">Đang chờ gửi xong bài ghi âm. Đừng đóng trang.</span>'); return; }
+    finishing = true;
+    T.api('submitS', { code: s.code, dev: T.dev(), meta: draft.meta }).then(function (r) {
+      if (!r.ok) { finishing = false; $('#serr').textContent = T.err(r); $('#serr').hidden = false; ctrl('<button class="btn" id="again">Nộp lại</button>'); $('#again').onclick = maybeFinish; return; }
+      T.ls(key, null); try { stream && stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      $('#exam').hidden = true; $('#timer').textContent = 'Xong';
+      $('#done').innerHTML = '<div style="display:grid;gap:16px"><section class="result"><span class="stamp">Đã nộp phần Nói</span><p class="big">Chờ chấm</p><p>Giáo viên đã nhận ' + (r.parts || 0) + ' file ghi âm và sẽ chấm theo 4 tiêu chí của IELTS. Bạn xem kết quả ở mục Xem kết quả trên trang chính.</p></section>' + T.nextStep(sk) + '</div>';
+    });
+  }
+
+  $('#begin').onclick = function () {
+    $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
+      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu phần Nói';
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
+      var S = BANK.S[r.ids[0]];
+      Object.keys(r.files || {}).forEach(function (p) { draft.parts[p] = 'up'; ups[p] = { st: 'ok' }; });
+      draft.started = true; save();
+      $('#intro').hidden = true; $('#exam').hidden = false;
+      var t0 = Date.now(), clk = function () { $('#timer').classList.remove('idle'); $('#timer').textContent = T.fmt((Date.now() - t0) / 1000); }; clk(); setInterval(clk, 1000);
+      var chain = Promise.resolve();
+      if (!draft.parts[1]) chain = chain.then(function () { return qa(1, S.p1.qs, S.audio.p1, null, 360); });
+      if (!draft.parts[2]) chain = chain.then(function () { return part2(S); });
+      if (!draft.parts[3]) chain = chain.then(function () { return qa(3, S.p3.qs, S.audio.p3, S.audio.p3intro, 360); });
+      chain.then(function () { steps(4); $('#cue').hidden = true; card('Bạn đã hoàn thành phần Nói. Đang gửi bài cho giáo viên...'); draft.allDone = true; save(); maybeFinish(); });
+    });
+  };
+  if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Nói đang làm dở'; }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Writing · IELTS Mock Test</title>
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap" style="max-width:1280px">
+  <section class="card" id="intro">
+    <span class="stamp">Academic Writing · 2 bài · 60 phút</span>
+    <h2 style="margin-top:10px">Phần Viết</h2>
+    <ul class="clean" style="margin:12px 0">
+      <li><b>Task 1:</b> mô tả biểu đồ hoặc sơ đồ, ít nhất 150 từ, nên dành khoảng 20 phút.</li>
+      <li><b>Task 2:</b> viết bài luận, ít nhất 250 từ, nên dành khoảng 40 phút. Task 2 có trọng số gấp đôi Task 1.</li>
+      <li>Bài viết được tự lưu trên máy. Hết 60 phút, bài sẽ tự nộp.</li>
+      <li>Trang không cho dán văn bản từ nơi khác vào bài viết.</li>
+      <li>Giáo viên chấm theo 4 tiêu chí của IELTS và gửi kết quả sau.</li>
+    </ul>
+    <button class="btn blue" id="begin">Bắt đầu làm bài</button>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+  </section>
+
+  <div id="exam" hidden style="display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <div class="wtabs" role="tablist"><button class="ptab" data-t="1" role="tab">Task 1</button><button class="ptab" data-t="2" role="tab">Task 2</button></div>
+      <button class="btn ghost" id="submitBtn">Nộp bài</button>
+    </div>
+    <div class="split" id="task1">
+      <div class="pane" id="p1"></div>
+      <div class="pane" style="display:grid;gap:8px"><label class="small" for="t1">Bài viết Task 1</label><textarea class="essay" id="t1" spellcheck="false" autocapitalize="sentences"></textarea><span class="wc num" id="wc1">0 từ</span></div>
+    </div>
+    <div class="split" id="task2" hidden>
+      <div class="pane" id="p2"></div>
+      <div class="pane" style="display:grid;gap:8px"><label class="small" for="t2">Bài viết Task 2</label><textarea class="essay" id="t2" spellcheck="false" autocapitalize="sentences"></textarea><span class="wc num" id="wc2">0 từ</span></div>
+    </div>
+    <p class="msg err" id="serr" hidden></p>
+  </div>
+  <div id="done"></div>
+</main>
+<script src="assets/content.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$, sk = 'W';
+  var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
+  T.bar('Writing · Viết');
+  var key = T.draftKey(s.code, sk), draft = T.ls(key) || { t1: '', t2: '', tab: 1, meta: {} };
+  var timer, submitting = false;
+  T.watchBlur(draft.meta);
+  function save() { T.ls(key, draft); }
+  setInterval(save, 3000);
+  function wc(t) { return (String(t).trim().match(/\S+/g) || []).length; }
+  function count() {
+    var a = wc(draft.t1), b = wc(draft.t2);
+    $('#wc1').textContent = a + ' từ' + (a < 150 ? ' · cần ít nhất 150' : ' · đủ số từ');
+    $('#wc2').textContent = b + ' từ' + (b < 250 ? ' · cần ít nhất 250' : ' · đủ số từ');
+  }
+  function prompt(w, n) {
+    return '<span class="stamp">Writing Task ' + n + '</span><p class="small" style="margin:10px 0 6px">' + (n === 1 ? 'You should spend about 20 minutes on this task.' : 'You should spend about 40 minutes on this task.') + '</p>' +
+      '<p style="font-weight:600;margin-bottom:8px">' + T.esc(w.prompt) + '</p><p style="margin-bottom:10px">' + T.esc(w.instr) + (n === 2 ? ' Give reasons for your answer and include any relevant examples from your own knowledge or experience.' : '') + '</p>' +
+      (n === 1 ? T.chart(w) : '') + '<p class="small" style="margin-top:10px">Write at least ' + (n === 1 ? 150 : 250) + ' words.</p>' + (n === 1 && w.chart === 'museums' ? '<p class="small">Số liệu chỉ dùng cho bài luyện thi.</p>' : '');
+  }
+  function tab(n) {
+    draft.tab = n;
+    T.$$('.wtabs .ptab').forEach(function (b) { b.setAttribute('aria-selected', +b.getAttribute('data-t') === n); });
+    $('#task1').hidden = n !== 1; $('#task2').hidden = n !== 2;
+  }
+  T.$('.wtabs').onclick = function (e) { var t = e.target.getAttribute('data-t'); if (t) tab(+t); };
+  $('#t1').addEventListener('input', function () { draft.t1 = this.value; count(); });
+  $('#t2').addEventListener('input', function () { draft.t2 = this.value; count(); });
+  ['copy', 'cut', 'paste'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (e.target.tagName === 'TEXTAREA') { e.preventDefault(); draft.meta.paste = (draft.meta.paste || 0) + (ev === 'paste' ? 1 : 0); } }); });
+
+  function submit(auto) {
+    if (submitting) return;
+    var go = function () {
+      submitting = true; timer && timer.stop(); save();
+      $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang nộp...';
+      T.api('submitW', { code: s.code, t1: draft.t1, t2: draft.t2, dev: T.dev(), meta: draft.meta }).then(function (r) {
+        if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài viết vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
+        T.ls(key, null);
+        $('#exam').hidden = true; $('#timer').textContent = 'Xong';
+        $('#done').innerHTML = '<div style="display:grid;gap:16px"><section class="result"><span class="stamp">Đã nộp phần Viết</span><p class="big">Chờ chấm</p><p>Task 1: ' + (r.wc1 || 0) + ' từ · Task 2: ' + (r.wc2 || 0) + ' từ. Giáo viên sẽ chấm theo 4 tiêu chí của IELTS. Bạn xem kết quả ở mục Xem kết quả trên trang chính.</p></section>' + T.nextStep(sk) + '</div>';
+        window.scrollTo(0, 0);
+      });
+    };
+    if (auto) go(); else {
+      var a = wc(draft.t1), b = wc(draft.t2), warn = (a < 150 ? 'Task 1 mới có ' + a + ' từ. ' : '') + (b < 250 ? 'Task 2 mới có ' + b + ' từ. ' : '');
+      T.confirm('Nộp bài Viết?', warn + 'Sau khi nộp, bạn không sửa được bài.', 'Nộp bài').then(function (y) { if (y) go(); });
+    }
+  }
+  $('#submitBtn').onclick = function () { submit(false); };
+
+  $('#begin').onclick = function () {
+    $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
+      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
+      draft.started = true; save();
+      $('#p1').innerHTML = prompt(BANK.W[r.ids[0]], 1); $('#p2').innerHTML = prompt(BANK.W[r.ids[1]], 2);
+      $('#t1').value = draft.t1; $('#t2').value = draft.t2; count();
+      $('#intro').hidden = true; $('#exam').hidden = false; tab(draft.tab || 1);
+      timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+    });
+  };
+  if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Viết đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }
+})();
+</script>
+</body>
+</html>

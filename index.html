@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IELTS Mock Test · The Standard</title>
+<meta name="description" content="Bài thi thử IELTS Academic 4 kỹ năng của The Standard.">
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap" style="padding-top:16px">
+  <a href="index.html" aria-label="The Standard"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96" style="height:30px"></a>
+
+  <section class="lid">
+    <span class="stamp">IELTS Academic · 4 kỹ năng</span>
+    <h1>Thi thử IELTS</h1>
+    <p>Bài thi gồm Nghe, Đọc, Viết và Nói theo đúng định dạng IELTS Academic. Nghe và Đọc có điểm ngay sau khi nộp. Viết và Nói do giáo viên chấm.</p>
+  </section>
+
+  <section class="card" id="login">
+    <div class="field">
+      <label for="code">Mã vào thi</label>
+      <input class="input codein" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC234">
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="go">Vào thi</button><a class="btn ghost" href="result.html">Xem kết quả</a></div>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+    <p class="note" style="margin-top:12px">Mỗi học viên có một mã riêng do giáo viên gửi. Mỗi kỹ năng chỉ làm được một lần.</p>
+  </section>
+
+  <section id="home" hidden style="display:grid;gap:18px">
+    <section class="card" style="display:grid;gap:10px">
+      <p class="small">Xin chào</p>
+      <h2 id="hname"></h2>
+      <p class="small" id="hcls"></p>
+      <div class="row"><button class="btn blue" id="full">Thi trọn bộ</button><span class="small">Làm lần lượt Nghe, Đọc, Viết, Nói, khoảng 2 giờ 45 phút.</span></div>
+      <p class="small">Hoặc chọn từng kỹ năng bên dưới để làm riêng từng phần.</p>
+    </section>
+    <div class="tiles" id="tiles"></div>
+    <section class="card">
+      <h2>Trước khi làm bài</h2>
+      <ul class="clean" style="margin-top:10px">
+        <li>Dùng Chrome hoặc Safari bản mới, trên máy tính hoặc điện thoại. Máy tính sẽ dễ làm phần Đọc và Viết hơn.</li>
+        <li>Phần Nghe cần tai nghe. Audio chỉ phát một lần và không tua được.</li>
+        <li>Phần Nói cần micro và chỗ yên tĩnh. Bài nói được ghi âm và gửi cho giáo viên.</li>
+        <li>Bài làm được tự lưu trên máy. Nếu mất mạng hoặc lỡ tải lại trang, hãy mở lại trên cùng thiết bị để làm tiếp.</li>
+        <li>Đồng hồ vẫn chạy khi bạn rời trang. Số lần chuyển sang ứng dụng khác được ghi lại.</li>
+      </ul>
+      <div class="row" style="margin-top:14px"><a class="btn ghost" href="result.html">Xem kết quả</a><button class="btn ghost" id="out">Đổi mã khác</button></div>
+    </section>
+  </section>
+</main>
+<footer class="foot"><div class="in"><span>The Standard · Lê Hoàng</span><span>Đề thi do The Standard biên soạn theo định dạng IELTS Academic</span></div></footer>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$;
+  var STL = { open: 'Chưa làm', started: 'Đang làm dở', done: 'Đã nộp' };
+  function show(info) {
+    T.session({ code: info.code, name: info.name, cls: info.cls });
+    $('#login').hidden = true; $('#home').hidden = false;
+    $('#hname').textContent = info.name; $('#hcls').textContent = info.cls ? 'Lớp ' + info.cls + ' · Mã ' + info.code : 'Mã ' + info.code;
+    var h = '';
+    T.ORDER.forEach(function (sk) {
+      var st = info.st[sk] || 'open', res = info.res || {}, extra = '';
+      if (st === 'done' && (sk === 'L' || sk === 'R') && res[sk]) extra = 'Band ' + T.bandText(res[sk].band);
+      if (st === 'done' && (sk === 'W' || sk === 'S')) extra = res[sk] && typeof res[sk].band === 'number' ? 'Band ' + T.bandText(res[sk].band) : 'Chờ giáo viên chấm';
+      h += '<a class="tile ' + sk + (st === 'done' ? ' done' : '') + '" href="' + T.PAGE[sk] + '"' + (st === 'done' ? ' aria-disabled="true"' : '') + '><span class="stamp">' + T.SK[sk] + '</span><h3>' + T.SKVI[sk] + '</h3><span class="st">' + STL[st] + '</span><span>' + extra + '</span></a>';
+    });
+    $('#tiles').innerHTML = h;
+    var next = T.ORDER.filter(function (sk) { return (info.st[sk] || 'open') !== 'done'; })[0];
+    $('#full').disabled = !next;
+    $('#full').onclick = function () { T.flow(true); location.href = T.PAGE[next]; };
+    $('#tiles').onclick = function () { T.flow(false); };
+  }
+  function login(code) {
+    $('#err').hidden = true; $('#go').disabled = true; $('#go').textContent = 'Đang kiểm tra...';
+    T.api('info', { code: code }).then(function (r) {
+      $('#go').disabled = false; $('#go').textContent = 'Vào thi';
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'no_code') T.session(null); return; }
+      show(r);
+    });
+  }
+  $('#go').onclick = function () { var c = $('#code').value.trim().toUpperCase(); if (c.length < 6) { $('#err').textContent = 'Mã gồm 6 ký tự.'; $('#err').hidden = false; return; } login(c); };
+  $('#code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#go').click(); });
+  $('#out').onclick = function () { T.session(null); T.flow(false); location.reload(); };
+  var s = T.session(); if (s && s.code) { $('#code').value = s.code; login(s.code); }
+})();
+</script>
+</body>
+</html>

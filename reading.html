@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reading · IELTS Mock Test</title>
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/app.css">
+<script src="config.js"></script>
+</head>
+<body>
+<main class="wrap" style="max-width:1280px">
+  <section class="card" id="intro">
+    <span class="stamp">Academic Reading · 3 bài · 40 câu</span>
+    <h2 style="margin-top:10px">Phần Đọc</h2>
+    <ul class="clean" style="margin:12px 0">
+      <li>Bạn có <b>60 phút</b> cho 3 bài đọc. Nên dành khoảng 20 phút cho mỗi bài.</li>
+      <li>Chọn Passage 1, 2, 3 ở phía trên để chuyển bài. Trên điện thoại, bấm Bài đọc hoặc Câu hỏi để đổi màn hình.</li>
+      <li>Hết giờ, bài sẽ tự nộp. Câu trả lời được tự lưu trên máy.</li>
+    </ul>
+    <button class="btn blue" id="begin">Bắt đầu làm bài</button>
+    <p class="msg err" id="err" hidden style="margin-top:12px"></p>
+  </section>
+
+  <div id="exam" hidden style="display:grid;gap:14px">
+    <div class="row" style="justify-content:space-between">
+      <div class="ptabs" role="tablist" id="ptabs"></div>
+      <button class="btn ghost" id="submitBtn">Nộp bài</button>
+    </div>
+    <div class="mobswitch"><button class="ptab" id="vp" aria-selected="true">Bài đọc</button><button class="ptab" id="vq" aria-selected="false">Câu hỏi</button></div>
+    <div class="split">
+      <div class="pane passage" id="ppane"></div>
+      <div class="pane" id="qpane"></div>
+    </div>
+    <p class="msg err" id="serr" hidden></p>
+  </div>
+  <div id="done"></div>
+</main>
+<nav class="qnav" id="qnav" hidden><div class="nums" id="nums"></div></nav>
+<script src="assets/content.js"></script>
+<script src="assets/app.js"></script>
+<script>
+(function () {
+  var T = TS, $ = T.$, sk = 'R';
+  var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
+  T.bar('Reading · Đọc');
+  var key = T.draftKey(s.code, sk), draft = T.ls(key) || { answers: {}, tab: 0, meta: {} };
+  var answers = draft.answers, ids, timer, submitting = false, ranges = [[1, 13], [14, 26], [27, 40]];
+  T.watchBlur(draft.meta);
+  function save() { T.ls(key, draft); }
+  setInterval(save, 3000);
+  var narrow = window.matchMedia('(max-width: 899px)');
+
+  function render() {
+    var tabs = '', pp = '', qp = '';
+    ids.forEach(function (id, i) {
+      var it = BANK.R[id];
+      tabs += '<button class="ptab" role="tab" data-i="' + i + '">Passage ' + (i + 1) + '</button>';
+      pp += '<article data-i="' + i + '"><p class="small">Reading Passage ' + (i + 1) + ' · Questions ' + ranges[i][0] + ' to ' + ranges[i][1] + '</p><h2>' + T.esc(it.title) + '</h2>';
+      it.paras.forEach(function (p, j) { pp += '<p>' + (it.lettered ? '<span class="pl">' + 'ABCDEFGHIJ'[j] + '</span>' : '') + T.esc(p) + '</p>'; });
+      pp += '</article>';
+      qp += '<section class="qsec" data-i="' + i + '"><h3>Passage ' + (i + 1) + '</h3>' + T.renderGroups(it.groups) + '</section>';
+    });
+    $('#ptabs').innerHTML = tabs; $('#ppane').innerHTML = pp; $('#qpane').innerHTML = qp;
+    T.restoreAnswers($('#qpane'), answers);
+    var upd = T.qnav($('#nums'), answers, 1, 40, function (n) {
+      var i = n <= 13 ? 0 : n <= 26 ? 1 : 2; show(i); view('q');
+      var el = document.getElementById('w' + n) || document.getElementById('q' + n); el && el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    T.bindAnswers($('#qpane'), answers, function () { save(); upd(); });
+    upd(); $('#qnav').hidden = false;
+    $('#ptabs').onclick = function (e) { var i = e.target.getAttribute('data-i'); if (i !== null) { show(+i); view('p'); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
+    show(draft.tab || 0);
+  }
+  function show(i) {
+    draft.tab = i;
+    T.$$('#ptabs .ptab').forEach(function (b) { b.setAttribute('aria-selected', +b.getAttribute('data-i') === i); });
+    T.$$('#ppane article, #qpane .qsec').forEach(function (el) { el.hidden = +el.getAttribute('data-i') !== i; });
+    $('#ppane').scrollTop = 0; $('#qpane').scrollTop = 0;
+  }
+  function view(w) {
+    if (!narrow.matches) { $('#ppane').hidden = false; $('#qpane').hidden = false; return; }
+    $('#ppane').hidden = w !== 'p'; $('#qpane').hidden = w !== 'q';
+    $('#vp').setAttribute('aria-selected', w === 'p'); $('#vq').setAttribute('aria-selected', w === 'q');
+  }
+  $('#vp').onclick = function () { view('p'); window.scrollTo(0, 0); };
+  $('#vq').onclick = function () { view('q'); window.scrollTo(0, 0); };
+  narrow.addEventListener && narrow.addEventListener('change', function () { view('p'); });
+
+  function submit(auto) {
+    if (submitting) return;
+    var go = function () {
+      submitting = true; timer && timer.stop();
+      $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang nộp...';
+      T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
+        if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
+        T.ls(key, null);
+        $('#exam').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
+        $('#done').innerHTML = '<div style="display:grid;gap:16px">' + T.resultCard(sk, r, 40) + T.nextStep(sk) + '</div>';
+        window.scrollTo(0, 0);
+      });
+    };
+    if (auto) go(); else {
+      var left = 40 - Object.keys(answers).filter(function (q) { return T.answered(answers, q); }).length;
+      T.confirm('Nộp bài Đọc?', (left ? 'Bạn còn ' + left + ' câu chưa trả lời. ' : '') + 'Sau khi nộp, bạn không sửa được câu trả lời.', 'Nộp bài').then(function (y) { if (y) go(); });
+    }
+  }
+  $('#submitBtn').onclick = function () { submit(false); };
+
+  $('#begin').onclick = function () {
+    $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
+      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
+      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
+      ids = r.ids; draft.started = true; save();
+      $('#intro').hidden = true; $('#exam').hidden = false;
+      render(); view('p');
+      timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+    });
+  };
+  if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Đọc đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }
+})();
+</script>
+</body>
+</html>
