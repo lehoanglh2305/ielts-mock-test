@@ -1,1 +1,1 @@
-window.CONFIG = { endpoint: 'https://script.google.com/macros/s/AKfycbxgz4rQO0CjvuvhzqLEmAyoJxPPmg-6haJnHa_3cormB-RElw4gAuctCmSxtJXmO1qF/exec' };
+window.CONFIG = { endpoint: 'https://script.google.com/macros/s/AKfycbwLKZ2oBAh_0vNV5UtLeerpiMAEGeMuJzyRVaD9Q7oKGn6vHrqoSmf2FIzzsxmZsCWc/exec' };
