@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -82,7 +84,7 @@
       $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang nộp...';
       T.api('submitW', { code: s.code, t1: draft.t1, t2: draft.t2, dev: T.dev(), meta: draft.meta }).then(function (r) {
         if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài viết vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
-        T.ls(key, null);
+        T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { submitted: true });
         $('#exam').hidden = true; $('#timer').textContent = 'Xong';
         $('#done').innerHTML = '<div style="display:grid;gap:16px"><section class="result"><span class="stamp">Đã nộp phần Viết</span><p class="big">Chờ chấm</p><p>Task 1: ' + (r.wc1 || 0) + ' từ · Task 2: ' + (r.wc2 || 0) + ' từ. Giáo viên sẽ chấm theo 4 tiêu chí của IELTS. Bạn xem kết quả ở mục Xem kết quả trên trang chính.</p></section>' + T.nextStep(sk) + '</div>';
         window.scrollTo(0, 0);
@@ -97,14 +99,21 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
-    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
-      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
-      draft.started = true; save();
-      $('#p1').innerHTML = prompt(BANK.W[r.ids[0]], 1); $('#p2').innerHTML = prompt(BANK.W[r.ids[1]], 2);
-      $('#t1').value = draft.t1; $('#t2').value = draft.t2; count();
-      $('#intro').hidden = true; $('#exam').hidden = false; tab(draft.tab || 1);
-      timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+    T.begin(sk, {
+      ready: function (r) {
+        draft.started = true; save();
+        $('#p1').innerHTML = prompt(BANK.W[r.ids[0]], 1); $('#p2').innerHTML = prompt(BANK.W[r.ids[1]], 2);
+        $('#t1').value = draft.t1 || ''; $('#t2').value = draft.t2 || ''; count();
+        $('#intro').hidden = true; $('#exam').hidden = false; tab(draft.tab || 1);
+        timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+      },
+      sync: function (r) { timer && timer.set(r.t0 + 60 * 60 * 1000); },
+      wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
+      fail: function (r) {
+        timer && timer.stop(); $('#exam').hidden = true; $('#intro').hidden = false;
+        $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
+        $('#err').textContent = T.err(r); $('#err').hidden = false;
+      }
     });
   };
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Viết đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }

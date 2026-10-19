@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -199,7 +201,7 @@
     finishing = true;
     T.api('submitS', { code: s.code, dev: T.dev(), meta: draft.meta }).then(function (r) {
       if (!r.ok) { finishing = false; $('#serr').textContent = T.err(r); $('#serr').hidden = false; ctrl('<button class="btn" id="again">Nộp lại</button>'); $('#again').onclick = maybeFinish; return; }
-      T.ls(key, null); try { stream && stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { submitted: true }); try { stream && stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
       $('#exam').hidden = true; $('#timer').textContent = 'Xong';
       $('#done').innerHTML = '<div style="display:grid;gap:16px"><section class="result"><span class="stamp">Đã nộp phần Nói</span><p class="big">Chờ chấm</p><p>Giáo viên đã nhận ' + (r.parts || 0) + ' file ghi âm và sẽ chấm theo 4 tiêu chí của IELTS. Bạn xem kết quả ở mục Xem kết quả trên trang chính.</p></section>' + T.nextStep(sk) + '</div>';
     });
@@ -207,9 +209,18 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
-    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
-      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu phần Nói';
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
+    T.begin(sk, {
+      ready: run,
+      wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
+      fail: function (r) {
+        try { if (rec && rec.state !== 'inactive') { rec.onstop = null; rec.stop(); } } catch (e) {}
+        au.pause(); clearInterval(recIv); $('#rec').hidden = true;
+        $('#exam').hidden = true; $('#intro').hidden = false;
+        $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu phần Nói';
+        $('#err').textContent = T.err(r); $('#err').hidden = false;
+      }
+    });
+    function run(r) {
       var S = BANK.S[r.ids[0]];
       Object.keys(r.files || {}).forEach(function (p) { draft.parts[p] = 'up'; ups[p] = { st: 'ok' }; });
       draft.started = true; save();
@@ -220,7 +231,7 @@
       if (!draft.parts[2]) chain = chain.then(function () { return part2(S); });
       if (!draft.parts[3]) chain = chain.then(function () { return qa(3, S.p3.qs, S.audio.p3, S.audio.p3intro, 360); });
       chain.then(function () { steps(4); $('#cue').hidden = true; card('Bạn đã hoàn thành phần Nói. Đang gửi bài cho giáo viên...'); draft.allDone = true; save(); maybeFinish(); });
-    });
+    }
   };
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Nói đang làm dở'; }
 })();

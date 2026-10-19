@@ -9,6 +9,8 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -60,7 +62,7 @@
   var T = TS, $ = T.$;
   var STL = { open: 'Chưa làm', started: 'Đang làm dở', done: 'Đã nộp' };
   function show(info) {
-    T.session({ code: info.code, name: info.name, cls: info.cls });
+    T.session({ code: info.code, name: info.name, cls: info.cls }); T.info(info);
     $('#login').hidden = true; $('#home').hidden = false;
     $('#hname').textContent = info.name; $('#hcls').textContent = info.cls ? 'Lớp ' + info.cls + ' · Mã ' + info.code : 'Mã ' + info.code;
     var h = '';
@@ -76,18 +78,28 @@
     $('#full').onclick = function () { T.flow(true); location.href = T.PAGE[next]; };
     $('#tiles').onclick = function () { T.flow(false); };
   }
-  function login(code) {
-    $('#err').hidden = true; $('#go').disabled = true; $('#go').textContent = 'Đang kiểm tra...';
+  function login(code, quiet) {
+    $('#err').hidden = true;
+    if (!quiet) { $('#go').disabled = true; $('#go').textContent = 'Đang kiểm tra...'; }
     T.api('info', { code: code }).then(function (r) {
       $('#go').disabled = false; $('#go').textContent = 'Vào thi';
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'no_code') T.session(null); return; }
+      if (!r.ok) {
+        if (quiet && r.error !== 'no_code') return;          // keep the stored view when the network blips
+        if (quiet) { $('#home').hidden = true; $('#login').hidden = false; }
+        $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'no_code') { T.session(null); T.info(null); } return;
+      }
       show(r);
     });
   }
   $('#go').onclick = function () { var c = $('#code').value.trim().toUpperCase(); if (c.length < 6) { $('#err').textContent = 'Mã gồm 6 ký tự.'; $('#err').hidden = false; return; } login(c); };
   $('#code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#go').click(); });
-  $('#out').onclick = function () { T.session(null); T.flow(false); location.reload(); };
-  var s = T.session(); if (s && s.code) { $('#code').value = s.code; login(s.code); }
+  $('#out').onclick = function () { T.session(null); T.info(null); T.flow(false); location.reload(); };
+  var s = T.session(), cached = T.info();
+  if (s && s.code) {
+    $('#code').value = s.code;
+    if (cached) { show(cached); login(s.code, true); }   // open at once, refresh in the background
+    else login(s.code);
+  }
 })();
 </script>
 </body>

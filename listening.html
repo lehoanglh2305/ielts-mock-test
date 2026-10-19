@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -114,11 +116,11 @@
     if (submitting) return;
     var go = function () {
       submitting = true; au.pause(); review && review.stop();
-      $('#submitBtn').disabled = true; $('#pstat').textContent = 'Đang nộp bài...';
+      $('#submitBtn').disabled = true; $('#pstat').textContent = 'Đang chấm bài...';
       var send = function () {
         T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
           if (!r.ok) { $('#perr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#perr').hidden = false; $('#submitBtn').disabled = false; submitting = false; $('#submitBtn').textContent = 'Gửi lại'; return; }
-          T.ls(key, null);
+          T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { raw: r.raw, band: r.band });
           $('#qs').innerHTML = ''; $('#player').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
           $('#done').innerHTML = '<div style="display:grid;gap:16px">' + T.resultCard(sk, r, 40) + T.nextStep(sk) + '</div>';
           window.scrollTo(0, 0);
@@ -132,15 +134,22 @@
 
   function begin(isResume) {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
-    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
-      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu nghe';
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
-      ids = r.ids; draft.started = true; save();
-      $('#intro').hidden = true; $('#player').hidden = false;
-      render();
-      if (draft.ended) startReview();
-      else if (draft.part > 0 || draft.pos > 0) { $('#resume').hidden = false; $('#pstat').textContent = 'Bài đang làm dở. Bấm Tiếp tục nghe.'; au.src = BANK.L[ids[draft.part]].audio; }
-      else play(0);
+    T.begin(sk, {
+      ready: function (r) {
+        ids = r.ids; draft.started = true; save();
+        $('#intro').hidden = true; $('#player').hidden = false;
+        render();
+        if (draft.ended) startReview();
+        else if (draft.part > 0 || draft.pos > 0) { $('#resume').hidden = false; $('#pstat').textContent = 'Bài đang làm dở. Bấm Tiếp tục nghe.'; au.src = BANK.L[ids[draft.part]].audio; }
+        else play(0);
+      },
+      wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
+      fail: function (r) {
+        submitting = true; au.pause(); review && review.stop(); submitting = false;
+        $('#player').hidden = true; $('#qs').innerHTML = ''; $('#qnav').hidden = true; $('#intro').hidden = false;
+        $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu nghe';
+        $('#err').textContent = T.err(r); $('#err').hidden = false;
+      }
     });
   }
   $('#begin').onclick = function () { begin(false); };

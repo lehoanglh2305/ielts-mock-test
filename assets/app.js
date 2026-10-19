@@ -46,6 +46,57 @@
   };
   A.session = function (v) { return v === undefined ? ls('ts-ielts-session') : ls('ts-ielts-session', v); };
   A.draftKey = function (code, sk) { return 'ts-ielts-' + code + '-' + sk; };
+
+  /* Last info reply from the server, so pages can open without waiting for it. */
+  A.info = function (v) {
+    if (v === undefined) { var i = ls('ts-ielts-info'), s = A.session(); return i && s && i.code === s.code ? i : null; }
+    ls('ts-ielts-info', v);
+  };
+  A.markInfo = function (sk, st, res) {
+    var i = A.info(); if (!i) return;
+    i.st = i.st || {}; i.st[sk] = st;
+    if (res) { i.res = i.res || {}; i.res[sk] = res; }
+    A.info(i);
+  };
+
+  /* Wake the Apps Script server early: the first request after a quiet period is the slowest. */
+  A.warm = function () {
+    if (!CFG.endpoint || !window.fetch) return;
+    var now = Date.now(), last = 0;
+    try { last = +sessionStorage.getItem('ts-ielts-warm') || 0; sessionStorage.setItem('ts-ielts-warm', now); } catch (e) {}
+    if (now - last < 120000) return;
+    fetch(CFG.endpoint, { mode: 'no-cors', cache: 'no-store' }).catch(function () {});
+  };
+
+  /* Open a skill at once from the stored assignment, and confirm with the server in the background.
+     h.ready(r) runs once with { ids, t0, files, fast }, h.sync(r) when the server confirms,
+     h.fail(r) if the server refuses (done, other device, wrong code). */
+  A.begin = function (sk, h) {
+    var s = A.session(), info = A.info(), key = A.draftKey(s.code, sk), tk = key + '-t0', d = ls(key) || {};
+    var ids = info && info.asg && info.asg[sk], st = info && info.st && info.st[sk];
+    var fast = !!(ids && ids.length && st !== 'done'), readied = false;
+    if (fast) {
+      var t0 = d.started && ls(tk) ? ls(tk) : Date.now();   // a fresh attempt always starts a fresh clock
+      ls(tk, t0);
+      readied = true; h.ready({ ids: ids, t0: t0, files: {}, fast: true });
+    }
+    var tries = 0;
+    (function go() {
+      A.api('start', { code: s.code, skill: sk, dev: A.dev() }, 45000).then(function (r) {
+        if (r.ok) {
+          A.markInfo(sk, 'started');
+          ls(tk, r.t0);
+          if (!readied) { readied = true; h.ready(r); } else h.sync && h.sync(r);
+          return;
+        }
+        var temporary = r.error === 'network' || r.error === 'busy' || r.error === 'server';
+        if (temporary && tries++ < 4) { setTimeout(go, 2000 * tries); if (!readied) h.wait && h.wait(tries); return; }
+        if (temporary && readied) { h.offline && h.offline(r); return; }   // keep working; submit will retry
+        if (r.error === 'done') { ls(key, null); A.markInfo(sk, 'done'); }
+        h.fail(r);
+      });
+    })();
+  };
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */
@@ -297,4 +348,6 @@
     }
     return '';
   };
+
+  A.warm();
 })();

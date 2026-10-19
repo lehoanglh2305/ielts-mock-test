@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -92,10 +94,10 @@
     if (submitting) return;
     var go = function () {
       submitting = true; timer && timer.stop();
-      $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang nộp...';
+      $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang chấm bài...';
       T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
         if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
-        T.ls(key, null);
+        T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { raw: r.raw, band: r.band });
         $('#exam').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
         $('#done').innerHTML = '<div style="display:grid;gap:16px">' + T.resultCard(sk, r, 40) + T.nextStep(sk) + '</div>';
         window.scrollTo(0, 0);
@@ -110,13 +112,20 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
-    T.api('start', { code: s.code, skill: sk, dev: T.dev() }).then(function (r) {
-      $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'done') T.ls(key, null); return; }
-      ids = r.ids; draft.started = true; save();
-      $('#intro').hidden = true; $('#exam').hidden = false;
-      render(); view('p');
-      timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+    T.begin(sk, {
+      ready: function (r) {
+        ids = r.ids; draft.started = true; save();
+        $('#intro').hidden = true; $('#exam').hidden = false;
+        render(); view('p');
+        timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
+      },
+      sync: function (r) { timer && timer.set(r.t0 + 60 * 60 * 1000); },
+      wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
+      fail: function (r) {
+        timer && timer.stop(); $('#exam').hidden = true; $('#qnav').hidden = true; $('#intro').hidden = false;
+        $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
+        $('#err').textContent = T.err(r); $('#err').hidden = false;
+      }
     });
   };
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Đọc đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }

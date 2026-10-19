@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/app.css">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
 </head>
 <body>
@@ -27,9 +29,17 @@
   var s = T.session(); if (s && s.code) $('#code').value = s.code;
   function row(label, val, sub) { return '<div class="tile ' + label + '" style="pointer-events:none"><span class="stamp">' + T.SK[label] + '</span><h3>' + val + '</h3><span>' + (sub || '') + '</span></div>'; }
   $('#go').onclick = function () {
-    var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true; $('#out').innerHTML = '';
+    var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true;
+    var ck = 'ts-ielts-res-' + c, old = T.ls(ck);
+    if (old) draw(old); else $('#out').innerHTML = '<p class="small">Đang tải kết quả...</p>';
+    $('#go').disabled = true;
     T.api('result', { code: c }).then(function (r) {
-      if (!r.ok) { $('#err').textContent = T.err(r); $('#err').hidden = false; return; }
+      $('#go').disabled = false;
+      if (!r.ok) { if (old && r.error !== 'no_code') return; $('#out').innerHTML = ''; T.ls(ck, null); $('#err').textContent = T.err(r); $('#err').hidden = false; return; }
+      T.ls(ck, r); draw(r);
+    });
+  };
+  function draw(r) {
       var x = r.res, st = r.st || {}, h = '';
       var stv = function (sk) { var v = (st[sk] || {}).s || 'open'; return v === 'open' ? 'Chưa làm' : v === 'started' ? 'Đang làm dở' : ''; };
       h += '<section class="result"><span class="stamp">' + T.esc(r.name) + (r.cls ? ' · ' + T.esc(r.cls) : '') + '</span><p class="big">' + (typeof x.overall === 'number' ? 'Overall ' + x.overall.toFixed(1) : 'Chưa đủ 4 kỹ năng') + '</p>' +
@@ -43,8 +53,7 @@
       if (x.W && x.W.comment) h += '<section class="card"><h2>Nhận xét phần Viết</h2><p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.W.comment) + '</p></section>';
       if (x.S && x.S.comment) h += '<section class="card"><h2>Nhận xét phần Nói</h2>' + (x.S.crit ? '<p class="small" style="margin-top:6px">Fluency and Coherence ' + x.S.crit.fc + ' · Lexical Resource ' + x.S.crit.lr + ' · Grammar ' + x.S.crit.gra + ' · Pronunciation ' + x.S.crit.p + '</p>' : '') + '<p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.S.comment) + '</p></section>';
       $('#out').innerHTML = h;
-    });
-  };
+  }
   $('#code').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#go').click(); });
   if ($('#code').value) $('#go').click();
 })();
