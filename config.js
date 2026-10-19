@@ -1,2 +1,1 @@
-/* Dán địa chỉ Web app của Apps Script (kết thúc bằng /exec) vào giữa hai dấu nháy. */
-window.CONFIG = { endpoint: '' };
+window.CONFIG = { endpoint: 'https://script.google.com/macros/s/AKfycbxgz4rQO0CjvuvhzqLEmAyoJxPPmg-6haJnHa_3cormB-RElw4gAuctCmSxtJXmO1qF/exec' };
