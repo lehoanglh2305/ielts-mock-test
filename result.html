@@ -45,11 +45,12 @@
       h += '<section class="result"><span class="stamp">' + T.esc(r.name) + (r.cls ? ' · ' + T.esc(r.cls) : '') + '</span><p class="big">' + (typeof x.overall === 'number' ? 'Overall ' + x.overall.toFixed(1) : 'Chưa đủ 4 kỹ năng') + '</p>' +
         '<p>' + (typeof x.overall === 'number' ? 'Điểm tổng là trung bình 4 kỹ năng, làm tròn đến 0.5 gần nhất.' : 'Điểm tổng sẽ hiện khi có đủ điểm Nghe, Đọc, Viết và Nói.') + '</p></section>';
       h += '<div class="tiles">';
-      h += row('L', x.L ? 'Band ' + T.bandText(x.L.band) : stv('L'), x.L ? x.L.raw + ' trên 40 câu đúng' : '');
-      h += row('R', x.R ? 'Band ' + T.bandText(x.R.band) : stv('R'), x.R ? x.R.raw + ' trên 40 câu đúng' : '');
+      h += row('L', x.L ? 'Band ' + T.bandText(x.L.band) + ' (ước tính)' : stv('L'), x.L ? x.L.raw + ' trên 40 câu đúng' : '');
+      h += row('R', x.R ? 'Band ' + T.bandText(x.R.band) + ' (ước tính)' : stv('R'), x.R ? x.R.raw + ' trên 40 câu đúng' : '');
       h += row('W', x.W ? (typeof x.W.band === 'number' ? 'Band ' + T.bandText(x.W.band) : 'Chờ chấm') : stv('W'), x.W && typeof x.W.t1 === 'number' ? 'Task 1: ' + x.W.t1.toFixed(1) + ' · Task 2: ' + (typeof x.W.t2 === 'number' ? x.W.t2.toFixed(1) : '...') : '');
       h += row('S', x.S ? (typeof x.S.band === 'number' ? 'Band ' + T.bandText(x.S.band) : 'Chờ chấm') : stv('S'), '');
       h += '</div>';
+      h += '<p class="small">Band Nghe và Đọc là ước tính từ đề rút gọn, chỉ để tham khảo, không thay thế kết quả IELTS chính thức.</p>';
       if (x.W && x.W.comment) h += '<section class="card"><h2>Nhận xét phần Viết</h2><p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.W.comment) + '</p></section>';
       if (x.S && x.S.comment) h += '<section class="card"><h2>Nhận xét phần Nói</h2>' + (x.S.crit ? '<p class="small" style="margin-top:6px">Fluency and Coherence ' + x.S.crit.fc + ' · Lexical Resource ' + x.S.crit.lr + ' · Grammar ' + x.S.crit.gra + ' · Pronunciation ' + x.S.crit.p + '</p>' : '') + '<p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.S.comment) + '</p></section>';
       $('#out').innerHTML = h;

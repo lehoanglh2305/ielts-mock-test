@@ -175,3 +175,8 @@ footer.foot a{color:var(--cream)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 
 @media (max-width:560px){.bar .who .t{display:none}.wm{height:20px}.timer{font-size:19px;min-width:84px;padding:7px 12px}}
+
+/* touch targets of at least 44px */
+.tf label,.sel{min-height:44px}
+.qnav .nums a{min-width:44px;height:44px;width:auto}
+@media (max-width:899px){.qnav .nums{gap:6px}}

@@ -97,6 +97,20 @@
       });
     })();
   };
+  /* Submit with automatic retries on temporary errors; onRetry(n) runs before each retry. */
+  A.submit = function (payload, onRetry) {
+    var tries = 0;
+    return (function go() {
+      return A.api('submit', payload, 45000).then(function (r) {
+        var temporary = !r.ok && (r.error === 'network' || r.error === 'busy' || r.error === 'server');
+        if (temporary && tries++ < 3) {
+          onRetry && onRetry(tries);
+          return new Promise(function (res) { setTimeout(res, 2000 * tries); }).then(go);
+        }
+        return r;
+      });
+    })();
+  };
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */
@@ -266,7 +280,7 @@
   A.resultCard = function (sk, r, total) {
     var ticks = '';
     for (var i = 1; i <= (total || 40); i++) ticks += '<span class="' + (r.detail && r.detail[i] ? 'y' : 'n') + '">' + i + (r.detail && r.detail[i] ? ' ✓' : ' ✗') + '</span>';
-    return '<section class="result"><span class="stamp">Kết quả ' + A.SKVI[sk] + '</span><p class="big num">Band ' + A.bandText(r.band) + '</p><p>Số câu đúng: <b>' + r.raw + ' trên ' + (total || 40) + '</b></p></section>' +
+    return '<section class="result"><span class="stamp">Kết quả ' + A.SKVI[sk] + '</span><p class="big num">Band ' + A.bandText(r.band) + '</p><p>Số câu đúng: <b>' + r.raw + ' trên ' + (total || 40) + '</b></p><p class="small" style="margin-top:8px">Đây là band ước tính từ đề rút gọn, dùng để tham khảo. Phần Nghe khoảng 20 phút (đề IELTS thật khoảng 30 phút) và bài Đọc thường ngắn hơn đề thật.</p></section>' +
       '<section class="card"><h2>Câu đúng và câu sai</h2><p class="small" style="margin:6px 0 12px">Đáp án đúng không được hiển thị để giữ đề cho các bạn khác. Giáo viên sẽ chữa bài với bạn.</p><div class="ticks">' + ticks + '</div></section>';
   };
 

@@ -68,7 +68,7 @@
     var h = '';
     T.ORDER.forEach(function (sk) {
       var st = info.st[sk] || 'open', res = info.res || {}, extra = '';
-      if (st === 'done' && (sk === 'L' || sk === 'R') && res[sk]) extra = 'Band ' + T.bandText(res[sk].band);
+      if (st === 'done' && (sk === 'L' || sk === 'R') && res[sk]) extra = 'Band ' + T.bandText(res[sk].band) + ' (ước tính)';
       if (st === 'done' && (sk === 'W' || sk === 'S')) extra = res[sk] && typeof res[sk].band === 'number' ? 'Band ' + T.bandText(res[sk].band) : 'Chờ giáo viên chấm';
       h += '<a class="tile ' + sk + (st === 'done' ? ' done' : '') + '" href="' + T.PAGE[sk] + '"' + (st === 'done' ? ' aria-disabled="true"' : '') + '><span class="stamp">' + T.SK[sk] + '</span><h3>' + T.SKVI[sk] + '</h3><span class="st">' + STL[st] + '</span><span>' + extra + '</span></a>';
     });

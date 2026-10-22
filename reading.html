@@ -20,6 +20,7 @@
       <li>Bạn có <b>60 phút</b> cho 3 bài đọc. Nên dành khoảng 20 phút cho mỗi bài.</li>
       <li>Chọn Passage 1, 2, 3 ở phía trên để chuyển bài. Trên điện thoại, bấm Bài đọc hoặc Câu hỏi để đổi màn hình.</li>
       <li>Hết giờ, bài sẽ tự nộp. Câu trả lời được tự lưu trên máy.</li>
+      <li>Bài Đọc thường ngắn hơn đề IELTS thật. Điểm Đọc là band ước tính, chỉ để tham khảo.</li>
     </ul>
     <button class="btn blue" id="begin">Bắt đầu làm bài</button>
     <p class="msg err" id="err" hidden style="margin-top:12px"></p>
@@ -32,8 +33,8 @@
     </div>
     <div class="mobswitch"><button class="ptab" id="vp" aria-selected="true">Bài đọc</button><button class="ptab" id="vq" aria-selected="false">Câu hỏi</button></div>
     <div class="split">
-      <div class="pane passage" id="ppane"></div>
-      <div class="pane" id="qpane"></div>
+      <div class="pane passage" id="ppane" lang="en"></div>
+      <div class="pane" id="qpane" lang="en"></div>
     </div>
     <p class="msg err" id="serr" hidden></p>
   </div>
@@ -95,7 +96,7 @@
     var go = function () {
       submitting = true; timer && timer.stop();
       $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang chấm bài...';
-      T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
+      T.submit({ code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }, function (n) { $('#submitBtn').textContent = 'Máy chủ chậm, đang thử lại (' + n + ')...'; }).then(function (r) {
         if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
         T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { raw: r.raw, band: r.band });
         $('#exam').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
