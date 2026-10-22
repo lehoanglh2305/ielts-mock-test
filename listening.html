@@ -17,7 +17,8 @@
     <span class="stamp">Listening · 4 phần · 40 câu</span>
     <h2 style="margin-top:10px">Phần Nghe</h2>
     <ul class="clean" style="margin:12px 0">
-      <li>Bài nghe có 4 phần, khoảng 20 phút, chỉ phát <b>một lần</b> và không tua được.</li>
+      <li>Bài nghe có 4 phần, khoảng 20 phút (đề IELTS thật khoảng 30 phút), chỉ phát <b>một lần</b> và không tua được.</li>
+      <li>Điểm Nghe là band ước tính từ đề rút gọn, chỉ để tham khảo.</li>
       <li>Trước mỗi phần có thời gian đọc câu hỏi. Bạn trả lời ngay trong lúc nghe.</li>
       <li>Hết audio, bạn có 2 phút để kiểm tra rồi bài sẽ tự nộp.</li>
       <li>Hãy đeo tai nghe và bấm Kiểm tra âm thanh trước khi bắt đầu.</li>
@@ -33,7 +34,7 @@
     <p class="msg err" id="perr" hidden></p>
   </section>
 
-  <div id="qs" class="exam"></div>
+  <div id="qs" class="exam" lang="en"></div>
   <div id="done"></div>
 </main>
 <nav class="qnav" id="qnav" hidden><div class="nums" id="nums"></div></nav>
@@ -118,7 +119,7 @@
       submitting = true; au.pause(); review && review.stop();
       $('#submitBtn').disabled = true; $('#pstat').textContent = 'Đang chấm bài...';
       var send = function () {
-        T.api('submit', { code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }).then(function (r) {
+        T.submit({ code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }, function (n) { $('#submitBtn').textContent = 'Máy chủ chậm, đang thử lại (' + n + ')...'; }).then(function (r) {
           if (!r.ok) { $('#perr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#perr').hidden = false; $('#submitBtn').disabled = false; submitting = false; $('#submitBtn').textContent = 'Gửi lại'; return; }
           T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { raw: r.raw, band: r.band });
           $('#qs').innerHTML = ''; $('#player').hidden = true; $('#qnav').hidden = true; $('#timer').textContent = 'Xong';
