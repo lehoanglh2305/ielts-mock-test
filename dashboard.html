@@ -177,7 +177,8 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       h += '<section class="card" style="display:grid;gap:12px"><h2>Viết</h2>';
       if (!d.W) h += '<p class="small">Chưa nộp.</p>';
       else {
-        h += '<div class="grid2"><div><p><b>Task 1</b> · ' + d.W.wc1 + ' từ</p><p class="small">' + T.esc((BANK.W[a.W[0]] || {}).prompt || '') + '</p><div class="essay-view">' + T.esc(d.W.t1) + '</div></div>' +
+        var w1 = BANK.W[a.W[0]] || {};   // the chart or diagram the student described, for marking Task 1
+        h += '<div class="grid2"><div><p><b>Task 1</b> · ' + d.W.wc1 + ' từ</p><p class="small">' + T.esc(w1.prompt || '') + '</p><div lang="en" style="margin:8px 0 10px">' + T.chart(w1) + '</div><div class="essay-view">' + T.esc(d.W.t1) + '</div></div>' +
           '<div><p><b>Task 2</b> · ' + d.W.wc2 + ' từ</p><p class="small">' + T.esc((BANK.W[a.W[1]] || {}).prompt || '') + '</p><div class="essay-view">' + T.esc(d.W.t2) + '</div></div></div>' +
           '<div class="row"><label class="small">Task 1 <select class="sel" id="wb1">' + bands + '</select></label><label class="small">Task 2 <select class="sel" id="wb2">' + bands + '</select></label><label class="small">Band Viết <select class="sel" id="wb">' + bands + '</select></label><span class="small" id="wsug"></span></div>' +
           '<textarea class="essay" id="wc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.W.comment || '') + '</textarea><div class="row"><button class="btn blue" id="wsave">Lưu điểm Viết</button><span class="small" id="wmsg"></span></div>';
