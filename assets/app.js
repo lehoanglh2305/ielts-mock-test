@@ -299,6 +299,22 @@
     }
   };
 
+
+  /* Small original line icons for process diagrams, drawn in a 48 x 48 box around (cx, cy). */
+  var INK = '#4b2a22', BOTTLE = 'M-4 -18H4V-9C10 -5 10 -2 10 4V18H-10V4C-10 -2 -10 -5 -4 -9Z';
+  function bottle(x, y, fill, k) { return '<path transform="translate(' + x + ' ' + y + ') scale(' + (k || 1) + ')" d="' + BOTTLE + '" fill="' + fill + '" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>'; }
+  var ICONS = {
+    bin: function () { return '<path d="M-16 -10H16L12 20H-12Z" fill="#7fb77e" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/><rect x="-19" y="-17" width="38" height="7" rx="2" fill="#5e9a5d" stroke="' + INK + '" stroke-width="1.6"/>' + bottle(0, 4, '#e9f4ff', 0.5); },
+    truck: function () { return '<rect x="-22" y="-14" width="26" height="22" rx="2" fill="#f6c453" stroke="' + INK + '" stroke-width="1.6"/><path d="M4 -8H14L22 0V8H4Z" fill="#fffaf2" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/><circle cx="-11" cy="12" r="5" fill="#4b2a22"/><circle cx="12" cy="12" r="5" fill="#4b2a22"/>'; },
+    sort: function () { return bottle(-15, 2, '#6fbf73', 0.8) + bottle(0, 2, '#c98a4b', 0.8) + bottle(15, 2, '#dff1ff', 0.8); },
+    wash: function () { return bottle(-4, 2, '#e9f4ff', 0.95) + '<path d="M16 -14C20 -8 22 -5 22 -2A6 6 0 0 1 10 -2C10 -5 12 -8 16 -14Z" fill="#5aa6e6" stroke="' + INK + '" stroke-width="1.2"/><path d="M18 8C21 12 22 14 22 16A4.5 4.5 0 0 1 13 16C13 14 14.500 12 18 8Z" fill="#5aa6e6" stroke="' + INK + '" stroke-width="1.2"/>'; },
+    crush: function () { var sh = [[-18, 8, -10, 0, -4, 10], [-6, 12, 0, 2, 8, 12], [6, 10, 14, 0, 20, 12], [-10, -4, -4, -14, 2, -4], [4, -2, 10, -12, 16, -2]]; return sh.map(function (t) { return '<polygon points="' + t.join(' ') + '" fill="#cfe8f7" stroke="' + INK + '" stroke-width="1.4" stroke-linejoin="round"/>'; }).join(''); },
+    furnace: function () { return '<rect x="-20" y="-4" width="40" height="24" rx="3" fill="#8a6a5c" stroke="' + INK + '" stroke-width="1.6"/><rect x="-11" y="4" width="22" height="16" rx="8" fill="#2f1b16"/><path d="M0 -22C6 -14 9 -10 9 -5A9 9 0 0 1 -9 -5C-9 -9 -5 -12 0 -22Z" fill="#f08a2b" stroke="' + INK + '" stroke-width="1.4"/><path d="M0 -12C3 -8 4 -6 4 -4A4 4 0 0 1 -4 -4C-4 -6 -2 -8 0 -12Z" fill="#ffd34d"/>'; },
+    mould: function () { return '<path d="M-20 -16H-2V18H-20Z" fill="#b8a99f" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/><path d="M2 -16H20V18H2Z" fill="#b8a99f" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/>' + bottle(0, 1, '#f5a04a', 0.8); },
+    shop: function () { return '<rect x="-20" y="-4" width="40" height="24" fill="#fffaf2" stroke="' + INK + '" stroke-width="1.6"/><path d="M-22 -4L-17 -16H17L22 -4Z" fill="#e8745e" stroke="' + INK + '" stroke-width="1.6" stroke-linejoin="round"/><path d="M-9 -4L-7 -16M3 -4L2 -16M13 -4L12 -16" stroke="#fffaf2" stroke-width="3"/>' + bottle(0, 6, '#6fb2e6', 0.55); }
+  };
+  A.icon = function (name, cx, cy) { return ICONS[name] ? '<g transform="translate(' + cx + ' ' + cy + ')" aria-hidden="true">' + ICONS[name]() + '</g>' : ''; };
+
   A.chart = function (w) {
     if (w.chart === 'museums') {
       var d = w.data, W = 560, H = 340, L = 56, R = 150, T = 20, B = 46, max = 600;
@@ -325,18 +341,19 @@
       return s + '</svg>';
     }
     if (w.chart === 'glass') {
-      var st = w.steps, Wd = 560, Hd = 330, bw = 118, bh = 74, gx = 18, s2 = '<svg class="chart" viewBox="0 0 ' + Wd + ' ' + Hd + '" role="img" aria-label="' + A.esc(w.prompt) + '">';
+      var st = w.steps, Wd = 560, Hd = 348, bw = 118, bh = 138, gx = 18, s2 = '<svg class="chart" viewBox="0 0 ' + Wd + ' ' + Hd + '" role="img" aria-label="' + A.esc(w.prompt) + '">';
       s2 += '<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4b2a22"/></marker></defs>';
       var pos = [];
-      for (var i = 0; i < 4; i++) pos.push([gx + i * (bw + 20), 40]);
-      for (var j = 0; j < 4; j++) pos.push([gx + (3 - j) * (bw + 20), 230]);
+      for (var i = 0; i < 4; i++) pos.push([gx + i * (bw + 20), 24]);
+      for (var j = 0; j < 4; j++) pos.push([gx + (3 - j) * (bw + 20), 198]);
       st.forEach(function (t, i) {
         var p = pos[i];
         s2 += '<rect x="' + p[0] + '" y="' + p[1] + '" width="' + bw + '" height="' + bh + '" rx="12" fill="' + (i === 5 ? '#fbe1dc' : '#fffaf2') + '" stroke="#4b2a22" stroke-width="1.5"/>';
         s2 += '<circle cx="' + (p[0] + 16) + '" cy="' + (p[1] + 16) + '" r="11" fill="#1f5bb5"/><text x="' + (p[0] + 16) + '" y="' + (p[1] + 20) + '" font-size="12" text-anchor="middle" fill="#fff" font-family="Barlow,Arial" font-weight="700">' + (i + 1) + '</text>';
+        s2 += A.icon(w.icons && w.icons[i], p[0] + bw / 2, p[1] + 46);
         var words = t.split(' '), lines = [''], k = 0;
         words.forEach(function (wd) { if ((lines[k] + ' ' + wd).trim().length > 17) { k++; lines[k] = wd; } else lines[k] = (lines[k] + ' ' + wd).trim(); });
-        lines.forEach(function (ln, n) { s2 += '<text x="' + (p[0] + bw / 2) + '" y="' + (p[1] + 36 + n * 14) + '" font-size="11.5" text-anchor="middle" fill="#4b2a22" font-family="Barlow,Arial">' + A.esc(ln) + '</text>'; });
+        lines.forEach(function (ln, n) { s2 += '<text x="' + (p[0] + bw / 2) + '" y="' + (p[1] + 96 + n * 14) + '" font-size="11.5" text-anchor="middle" fill="#4b2a22" font-family="Barlow,Arial">' + A.esc(ln) + '</text>'; });
         if (i < st.length - 1) {
           var q = pos[i + 1];
           if (i === 3) s2 += '<line x1="' + (p[0] + bw / 2) + '" y1="' + (p[1] + bh) + '" x2="' + (q[0] + bw / 2) + '" y2="' + (q[1] - 4) + '" stroke="#4b2a22" stroke-width="2" marker-end="url(#ar)"/>';
