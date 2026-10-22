@@ -14,12 +14,12 @@
 <body>
 <main class="wrap">
   <section class="card" id="intro">
-    <span class="stamp">Speaking · 3 phần · 11 đến 14 phút</span>
+    <span class="stamp">Speaking · 3 phần · khoảng 10 phút</span>
     <h2 style="margin-top:10px">Phần Nói</h2>
     <ul class="clean" style="margin:12px 0">
-      <li><b>Part 1:</b> giám khảo hỏi về các chủ đề quen thuộc. Trả lời mỗi câu khoảng 20 đến 30 giây.</li>
+      <li><b>Part 1:</b> giám khảo hỏi 3 câu về các chủ đề quen thuộc. Trả lời mỗi câu khoảng 20 đến 30 giây.</li>
       <li><b>Part 2:</b> bạn có 1 phút chuẩn bị, sau đó nói 1 đến 2 phút về chủ đề trên thẻ.</li>
-      <li><b>Part 3:</b> thảo luận các câu hỏi chung hơn, liên quan đến chủ đề Part 2.</li>
+      <li><b>Part 3:</b> giám khảo hỏi 3 câu thảo luận chung hơn, liên quan đến chủ đề Part 2.</li>
       <li>Bài nói được ghi âm và gửi cho giáo viên. Hãy ngồi ở chỗ yên tĩnh và cho phép trang dùng micro.</li>
     </ul>
     <h3 style="font:700 20px var(--display);margin-bottom:8px">Bước 1. Kiểm tra micro</h3>
@@ -227,9 +227,11 @@
       $('#intro').hidden = true; $('#exam').hidden = false;
       var t0 = Date.now(), clk = function () { $('#timer').classList.remove('idle'); $('#timer').textContent = T.fmt((Date.now() - t0) / 1000); }; clk(); setInterval(clk, 1000);
       var chain = Promise.resolve();
-      if (!draft.parts[1]) chain = chain.then(function () { return qa(1, S.p1.qs, S.audio.p1, null, 360); });
+      var sid = r.ids[0], i1 = T.speakingPick(S, sid, s.code, 1), i3 = T.speakingPick(S, sid, s.code, 3);
+      var pick = function (list, idx) { return idx.map(function (i) { return list[i]; }); };
+      if (!draft.parts[1]) chain = chain.then(function () { return qa(1, pick(S.p1.qs, i1), pick(S.audio.p1, i1), null, 360); });
       if (!draft.parts[2]) chain = chain.then(function () { return part2(S); });
-      if (!draft.parts[3]) chain = chain.then(function () { return qa(3, S.p3.qs, S.audio.p3, S.audio.p3intro, 360); });
+      if (!draft.parts[3]) chain = chain.then(function () { return qa(3, pick(S.p3.qs, i3), pick(S.audio.p3, i3), S.audio.p3intro, 360); });
       chain.then(function () { steps(4); $('#cue').hidden = true; card('Bạn đã hoàn thành phần Nói. Đang gửi bài cho giáo viên...'); draft.allDone = true; save(); maybeFinish(); });
     }
   };
