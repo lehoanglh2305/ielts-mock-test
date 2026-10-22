@@ -25,6 +25,18 @@
 .qprompt{background:#fff;border:1px solid var(--sand);border-radius:12px;padding:10px 14px;margin:6px 0 8px;line-height:1.5}
 .qprompt p{margin:0 0 4px}
 .qprompt ol,.qprompt ul{margin:4px 0 0;padding-left:22px;list-style:revert}
+.wcard{background:#fff;border:1px solid var(--sand);border-radius:14px;padding:12px 14px;display:grid;gap:10px}
+.whead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.whead b{font:800 22px var(--display);letter-spacing:.02em}
+.whead .wavg{margin-left:auto;font-weight:600;color:var(--cobalt)}
+.wgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wtile{display:grid;gap:6px;align-content:start;border:1.5px solid var(--sand);border-radius:12px;padding:8px 10px;background:var(--paper);font-size:14px;line-height:1.25;cursor:pointer;transition:border-color .15s var(--ease),background .15s var(--ease)}
+.wtile .wname{font-weight:600;color:var(--mocha)}
+.wtile .sel{width:100%}
+.wtile.set{border-color:var(--cobalt);background:#eef3fd}
+.wsum{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#fff;border:1px solid var(--sand);border-radius:14px;padding:10px 14px}
+.wsum>b{font:800 18px var(--display);letter-spacing:.02em}
+@media (max-width:760px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:900px){.grid2{grid-template-columns:1fr 1fr}}
 iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px;background:#fff}
 </style>
@@ -85,9 +97,9 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     { k: 'gra', n: ['Grammatical Range & Accuracy', 'Grammatical Range & Accuracy'], h: ['Câu đơn và câu phức đa dạng, ngữ pháp và dấu câu chính xác', 'Câu đơn và câu phức đa dạng, ngữ pháp và dấu câu chính xác'] }
   ];
   function critRows(t) {
-    return '<div class="row"><b class="small">Task ' + t + '</b>' + WCRIT.map(function (c) {
-      return '<label class="small" title="' + c.h[t - 1] + '">' + c.n[t - 1] + ' <select class="sel critsel" data-t="' + t + '" id="c' + t + c.k + '">' + critOpts + '</select></label>';
-    }).join('') + '<span class="small" id="c' + t + 'avg"></span></div>';
+    return '<div class="wcard"><div class="whead"><b>Task ' + t + '</b><span class="small wavg" id="c' + t + 'avg"></span></div><div class="wgrid">' + WCRIT.map(function (c) {
+      return '<label class="wtile" title="' + c.h[t - 1] + '"><span class="wname">' + c.n[t - 1] + '</span><select class="sel critsel" data-t="' + t + '" id="c' + t + c.k + '">' + critOpts + '</select></label>';
+    }).join('') + '</div></div>';
   }
   function critHelp() {
     return '<details class="small"><summary>Cách dùng 4 tiêu chí</summary><ul style="margin:6px 0 0;padding-left:20px;list-style:revert">' +
@@ -201,7 +213,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
         h += '<div class="grid2"><div><p><b>Task 1</b> · ' + d.W.wc1 + ' từ</p><p class="small">' + T.esc(w1.prompt || '') + '</p><div lang="en" style="margin:8px 0 10px">' + T.chart(w1) + '</div><div class="essay-view">' + T.esc(d.W.t1) + '</div></div>' +
           '<div><p><b>Task 2</b> · ' + d.W.wc2 + ' từ</p><p class="small">' + T.esc((BANK.W[a.W[1]] || {}).prompt || '') + '</p><div class="essay-view">' + T.esc(d.W.t2) + '</div></div></div>' +
           critHelp() + critRows(1) + critRows(2) +
-          '<div class="row"><label class="small">Task 1 <select class="sel" id="wb1">' + bands + '</select></label><label class="small">Task 2 <select class="sel" id="wb2">' + bands + '</select></label><label class="small">Band Viết <select class="sel" id="wb">' + bands + '</select></label><span class="small" id="wsug"></span></div>' +
+          '<div class="wsum"><b>Điểm Viết</b><label class="small">Task 1 <select class="sel" id="wb1">' + bands + '</select></label><label class="small">Task 2 <select class="sel" id="wb2">' + bands + '</select></label><label class="small">Band Viết <select class="sel" id="wb">' + bands + '</select></label><span class="small" id="wsug"></span></div>' +
           '<textarea class="essay" id="wc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.W.comment || '') + '</textarea><div class="row"><button class="btn blue" id="wsave">Lưu điểm Viết</button><span class="small" id="wmsg"></span></div>';
       }
       h += '</section>';
@@ -218,7 +230,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       });
       if (d.S) {
         var cr = d.S.crit || {};
-        h += '<div class="row"><label class="small">Fluency <select class="sel" id="sfc">' + bands9 + '</select></label><label class="small">Lexical <select class="sel" id="slr">' + bands9 + '</select></label><label class="small">Grammar <select class="sel" id="sgra">' + bands9 + '</select></label><label class="small">Pronunciation <select class="sel" id="sp">' + bands9 + '</select></label><label class="small">Band Nói <select class="sel" id="sb">' + bands + '</select></label><span class="small" id="ssug"></span></div>' +
+        h += '<div class="wgrid">' + [['sfc', 'Fluency & Coherence'], ['slr', 'Lexical Resource'], ['sgra', 'Grammatical Range & Accuracy'], ['sp', 'Pronunciation']].map(function (c) { return '<label class="wtile set"><span class="wname">' + c[1] + '</span><select class="sel" id="' + c[0] + '">' + bands9 + '</select></label>'; }).join('') + '</div><div class="wsum"><label class="small">Band Nói <select class="sel" id="sb">' + bands + '</select></label><span class="small" id="ssug"></span></div>' +
           '<textarea class="essay" id="sc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.S.comment || '') + '</textarea><div class="row"><button class="btn blue" id="ssave">Lưu điểm Nói</button><span class="small" id="smsg"></span></div>';
       }
       h += '</section>';
@@ -239,6 +251,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
         var readCrit = function () { var o = {}; [1, 2].forEach(function (t) { o['t' + t] = {}; critKeys.forEach(function (k) { var v = $('#c' + t + k).value; o['t' + t][k] = v === '' ? null : +v; }); }); return o; };
         var applyCrit = function (t, setBand) {
           var vals = critKeys.map(function (k) { return $('#c' + t + k).value; }), n = vals.filter(function (v) { return v !== ''; }).length, el = $('#c' + t + 'avg');
+          critKeys.forEach(function (k) { var e = $('#c' + t + k); e.closest('label').classList.toggle('set', e.value !== ''); });
           var tiny = wcs[t - 1] != null && wcs[t - 1] <= 20 ? ' · Bài từ 20 từ trở xuống: tối đa Band 1' : '';
           if (n < 4) { el.textContent = (n ? 'Còn ' + (4 - n) + ' tiêu chí chưa chấm' : '') + tiny; return; }
           var avg = vals.reduce(function (a, v) { return a + +v; }, 0) / 4, b = half(avg);
