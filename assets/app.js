@@ -111,6 +111,22 @@
       });
     })();
   };
+  /* Deterministic pick of n of total items (ascending), so the exam page and the marker's view agree.
+     Items in keep are taken first. */
+  A.pickIdx = function (seed, total, n, keep) {
+    var h = 2166136261, i, j, t;
+    for (i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    var rnd = function () { h = (h + 0x6D2B79F5) >>> 0; var x = Math.imul(h ^ (h >>> 15), 1 | h); x ^= x + Math.imul(x ^ (x >>> 7), 61 | x); return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+    var chosen = (keep || []).filter(function (k) { return k < total; }), rest = [];
+    for (i = 0; i < total; i++) if (chosen.indexOf(i) < 0) rest.push(i);
+    for (i = rest.length - 1; i > 0; i--) { j = Math.floor(rnd() * (i + 1)); t = rest[i]; rest[i] = rest[j]; rest[j] = t; }
+    return chosen.concat(rest).slice(0, n).sort(function (a, b) { return a - b; });
+  };
+  /* Speaking Part 1 and Part 3 ask 3 questions each. Part 1 always keeps the opening question of each topic. */
+  A.speakingPick = function (S, id, code, part) {
+    var q = S['p' + part];
+    return A.pickIdx(String(code).toUpperCase() + ':' + id + ':p' + part, q.qs.length, 3, part === 1 ? q.starts : []);
+  };
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */

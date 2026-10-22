@@ -157,12 +157,12 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     });
   }
   /* The questions the student was asked, so the marker can read them next to each recording. */
-  function speakingPrompt(sq, part) {
+  function speakingPrompt(sq, part, idx) {
     if (!sq) return '';
-    var li = function (x) { return '<li>' + T.esc(x) + '</li>'; }, h = '';
-    if (part === 1) h = '<p><b>' + T.esc(sq.p1.topics.join(' · ')) + '</b></p><ol>' + sq.p1.qs.map(li).join('') + '</ol>';
+    var li = function (x) { return '<li>' + T.esc(x) + '</li>'; }, h = '', asked = function (list) { return idx.map(function (i) { return list[i]; }); };
+    if (part === 1) h = '<p><b>' + T.esc(sq.p1.topics.join(' · ')) + '</b> <span class="small">(3 câu được hỏi)</span></p><ol>' + asked(sq.p1.qs).map(li).join('') + '</ol>';
     else if (part === 2) h = '<p><b>' + T.esc(sq.p2.title) + '</b></p><p class="small">You should say:</p><ul>' + sq.p2.points.map(li).join('') + '</ul><p>' + T.esc(sq.p2.explain) + '</p>';
-    else h = '<p><b>' + T.esc(sq.p3.topic) + '</b></p><ol>' + sq.p3.qs.map(li).join('') + '</ol>';
+    else h = '<p><b>' + T.esc(sq.p3.topic) + '</b> <span class="small">(3 câu được hỏi)</span></p><ol>' + asked(sq.p3.qs).map(li).join('') + '</ol>';
     return '<div class="qprompt" lang="en">' + h + '</div>';
   }
   function show(r) {
@@ -186,13 +186,13 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       // speaking
       h += '<section class="card" style="display:grid;gap:12px"><h2>Nói</h2>';
       var f = (d.S && d.S.files) || {};
-      var sq = BANK.S[(a.S || [])[0]] || null;
+      var sid = (a.S || [])[0], sq = BANK.S[sid] || null;
       if (!Object.keys(f).length) h += '<p class="small">Chưa có file ghi âm.</p>';
       [1, 2, 3].forEach(function (p) {
         if (!f[p] && !sq) return;
         var head = f[p] ? '<p><b>Part ' + p + '</b> · ' + T.fmt(f[p].sec || 0) + ' · <a href="' + f[p].url + '" target="_blank" rel="noopener">Mở trên Google Drive</a></p>' : '<p><b>Part ' + p + '</b> · <span class="small">chưa có file ghi âm</span></p>';
         var player = f[p] ? '<iframe class="au" src="https://drive.google.com/file/d/' + f[p].id + '/preview" loading="lazy" title="Speaking Part ' + p + '"></iframe>' : '';
-        h += '<div>' + head + speakingPrompt(sq, p) + player + '</div>';
+        h += '<div>' + head + speakingPrompt(sq, p, sq && p !== 2 ? T.speakingPick(sq, sid, r.code, p) : null) + player + '</div>';
       });
       if (d.S) {
         var cr = d.S.crit || {};
