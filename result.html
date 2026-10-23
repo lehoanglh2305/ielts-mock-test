@@ -28,6 +28,7 @@
 (function () {
   var T = TS, $ = T.$;
   var s = T.session(); if (s && s.code) $('#code').value = s.code;
+  var qc = (new URLSearchParams(location.search).get('code') || '').trim().toUpperCase(); if (/^[A-Z0-9]{6}$/.test(qc)) $('#code').value = qc;
   function row(label, val, sub) { return '<div class="tile ' + label + '" style="pointer-events:none"><span class="stamp">' + T.SK[label] + '</span><h3>' + val + '</h3><span>' + (sub || '') + '</span></div>'; }
   $('#go').onclick = function () {
     var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true;
