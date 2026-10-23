@@ -189,3 +189,9 @@ footer.foot a{color:var(--cream)}
 .wdesc b{color:var(--cocoa)}
 .wdesc ul{margin:2px 0 6px;padding-left:16px;list-style:revert}
 @media (max-width:760px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* descriptor language switch: Vietnamese by default */
+html[data-dl="en"] .dl-vi,html:not([data-dl="en"]) .dl-en{display:none}
+.dltog{display:inline-flex;border:1.5px solid var(--cocoa);border-radius:999px;overflow:hidden;flex:none}
+.dltog button{font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border:0;background:transparent;color:var(--cocoa);cursor:pointer}
+html:not([data-dl="en"]) .dltog [data-dl-set="vi"],html[data-dl="en"] .dltog [data-dl-set="en"]{background:var(--cocoa);color:var(--paper)}
+.dlhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
