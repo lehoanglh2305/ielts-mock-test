@@ -6,7 +6,7 @@
 <title>Kết quả · IELTS Mock Test</title>
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css">
+<link rel="stylesheet" href="assets/app.css?v=20261023a">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
@@ -22,9 +22,9 @@
   <div id="out" style="display:grid;gap:16px"></div>
   <a class="btn ghost" href="index.html" style="justify-self:start">Về trang chính</a>
 </main>
-<script src="assets/app.js"></script>
-<script src="assets/descriptors.js"></script>
-<script src="assets/descriptors-vi.js"></script>
+<script src="assets/app.js?v=20261023a"></script>
+<script src="assets/descriptors.js?v=20261023a"></script>
+<script src="assets/descriptors-vi.js?v=20261023a"></script>
 <script>
 (function () {
   var T = TS, $ = T.$;
@@ -34,12 +34,12 @@
   $('#go').onclick = function () {
     var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true;
     var ck = 'ts-ielts-res-' + c, old = T.ls(ck);
-    if (old) draw(old); else $('#out').innerHTML = '<p class="small">Đang tải kết quả...</p>';
+    if (old) show(old); else $('#out').innerHTML = '<p class="small">Đang tải kết quả...</p>';
     $('#go').disabled = true;
     T.api('result', { code: c }).then(function (r) {
       $('#go').disabled = false;
       if (!r.ok) { if (old && r.error !== 'no_code') return; $('#out').innerHTML = ''; T.ls(ck, null); $('#err').textContent = T.err(r); $('#err').hidden = false; return; }
-      T.ls(ck, r); draw(r);
+      T.ls(ck, r); show(r);
     });
   };
   /* One card per task or skill: for each criterion, the score the marker gave and the published descriptor of that band. */
@@ -49,7 +49,10 @@
       return '<div class="wcell"><span style="font-weight:600">' + T.esc(c[0]) + (NAME_VI[c[0]] ? '<span class="dl-vi small" style="display:block;font-weight:400">' + NAME_VI[c[0]] + '</span>' : '') + '<span style="display:block;color:var(--cobalt)">Band ' + (c[1] % 1 ? c[1].toFixed(1) : c[1]) + '</span></span><div class="wdesc">' + T.bandDesc(c[2], c[1]) + '</div></div>';
     });
     if (!cells.length) return '';
-    return '<section class="card"><div class="dlhead"><h2>' + title + '</h2>' + T.dlToggle() + '</div><p class="small" style="margin-top:6px">Mô tả của từng tiêu chí ở band bạn nhận được, lấy từ bảng Band Descriptors của IELTS. Dùng để hiểu điểm của mình, không thay thế kết quả IELTS chính thức.<span class="dl-vi"> Bản tiếng Việt là bản dịch tham khảo của lớp The Standard, bản tiếng Anh mới là bản gốc.</span></p><div class="wgrid" style="margin-top:12px">' + cells.join('') + '</div></section>';
+    return '<section class="card"><div class="dlhead"><h2>' + title + '</h2>' + (T.dlToggle ? T.dlToggle() : '') + '</div><p class="small" style="margin-top:6px">Mô tả của từng tiêu chí ở band bạn nhận được, lấy từ bảng Band Descriptors của IELTS. Dùng để hiểu điểm của mình, không thay thế kết quả IELTS chính thức.<span class="dl-vi"> Bản tiếng Việt là bản dịch tham khảo của lớp The Standard, bản tiếng Anh mới là bản gốc.</span></p><div class="wgrid" style="margin-top:12px">' + cells.join('') + '</div></section>';
+  }
+  function show(r) {   // never leave the page blank: if drawing fails, say so and how to fix it
+    try { draw(r); } catch (e) { $('#out').innerHTML = '<p class="msg err">Trang chưa tải đúng phiên bản mới. Bấm Ctrl+F5 (hoặc xóa bộ nhớ đệm của trình duyệt) rồi thử lại.</p>'; }
   }
   function draw(r) {
       var x = r.res, st = r.st || {}, h = '';
