@@ -127,6 +127,14 @@
     var q = S['p' + part];
     return A.pickIdx(String(code).toUpperCase() + ':' + id + ':p' + part, q.qs.length, 3, part === 1 ? q.starts : []);
   };
+  /* The published descriptor of a band (tbl maps a band to its points). A half band shows the two bands either side. */
+  A.bandDesc = function (tbl, v) {
+    if (v === '' || v == null || !tbl) return '';
+    var n = +v, lo = Math.floor(n), hi = Math.ceil(n), one = function (b) {
+      return '<b>Band ' + b + '</b><ul>' + (tbl[b] || []).map(function (x) { return '<li>' + A.esc(x) + '</li>'; }).join('') + '</ul>';
+    };
+    return lo === hi ? one(lo) : '<span class="small" style="display:block;margin-bottom:2px">Giữa Band ' + lo + ' và Band ' + hi + '</span>' + one(lo) + one(hi);
+  };
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */
