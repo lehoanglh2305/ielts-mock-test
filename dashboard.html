@@ -34,6 +34,11 @@
 .wtile .wname{font-weight:600;color:var(--mocha)}
 .wtile .sel{width:100%}
 .wtile.set{border-color:var(--cobalt);background:#eef3fd}
+.wcell{display:grid;gap:6px;align-content:start;min-width:0}
+.wdesc{font-size:13px;line-height:1.35;color:var(--mocha)}
+.wdesc:empty{display:none}
+.wdesc b{color:var(--cocoa)}
+.wdesc ul{margin:2px 0 6px;padding-left:16px;list-style:revert}
 .wsum{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#fff;border:1px solid var(--sand);border-radius:14px;padding:10px 14px}
 .wsum>b{font:800 18px var(--display);letter-spacing:.02em}
 @media (max-width:760px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -78,6 +83,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
   </div>
 </main>
 <script src="assets/content.js"></script>
+<script src="assets/descriptors.js"></script>
 <script src="assets/app.js"></script>
 <script>
 (function () {
@@ -89,7 +95,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
   var bands9 = ''; for (var c = 0; c <= 9; c += 1) bands9 += '<option value="' + c + '">' + c + '</option>';
   var half = function (x) { return Math.floor(x * 2 + 0.5) / 2; };
   /* The four Writing criteria. Task 1 is marked on Task Achievement, Task 2 on Task Response. */
-  var critOpts = '<option value="">–</option>'; for (var ci = 0; ci <= 9; ci++) critOpts += '<option value="' + ci + '">' + ci + '</option>';
+  var critOpts = '<option value="">–</option>'; for (var ci = 0; ci <= 9; ci += 0.5) critOpts += '<option value="' + ci + '">' + (ci % 1 ? ci.toFixed(1) : ci) + '</option>';
   var WCRIT = [
     { k: 'ta', n: ['Task Achievement', 'Task Response'], h: ['Nêu đủ các đặc điểm chính, có tổng quan (overview), số liệu được dẫn chứng đúng', 'Trả lời đủ các phần của đề, có lập trường rõ, ý được mở rộng và có dẫn chứng'] },
     { k: 'cc', n: ['Coherence & Cohesion', 'Coherence & Cohesion'], h: ['Ý sắp xếp logic, liên kết câu và chia đoạn hợp lý', 'Ý sắp xếp logic, liên kết câu và chia đoạn hợp lý'] },
@@ -98,15 +104,24 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
   ];
   function critRows(t) {
     return '<div class="wcard"><div class="whead"><b>Task ' + t + '</b><span class="small wavg" id="c' + t + 'avg"></span></div><div class="wgrid">' + WCRIT.map(function (c) {
-      return '<label class="wtile" title="' + c.h[t - 1] + '"><span class="wname">' + c.n[t - 1] + '</span><select class="sel critsel" data-t="' + t + '" id="c' + t + c.k + '">' + critOpts + '</select></label>';
+      return '<div class="wcell"><label class="wtile" title="' + c.h[t - 1] + '"><span class="wname">' + c.n[t - 1] + '</span><select class="sel critsel" data-t="' + t + '" id="c' + t + c.k + '">' + critOpts + '</select></label><div class="wdesc" id="d' + t + c.k + '" lang="en"></div></div>';
     }).join('') + '</div></div>';
+  }
+  /* The published descriptor of the chosen band; a half band shows the two bands either side of it. */
+  function descHTML(t, k, v) {
+    if (v === '' || !window.BAND_DESC) return '';
+    var n = +v, lo = Math.floor(n), hi = Math.ceil(n), tbl = BAND_DESC['t' + t][k], one = function (b) {
+      return '<b>Band ' + b + '</b><ul>' + (tbl[b] || []).map(function (x) { return '<li>' + T.esc(x) + '</li>'; }).join('') + '</ul>';
+    };
+    return lo === hi ? one(lo) : '<span class="small" style="display:block;margin-bottom:2px">Giữa Band ' + lo + ' và Band ' + hi + '</span>' + one(lo) + one(hi);
   }
   function critHelp() {
     return '<details class="small"><summary>Cách dùng 4 tiêu chí</summary><ul style="margin:6px 0 0;padding-left:20px;list-style:revert">' +
-      WCRIT.map(function (c) { return '<li><b>' + c.n[0] + (c.k === 'ta' ? ' / Task Response' : '') + ':</b> ' + c.h[0] + '</li>'; }).join('') +
-      '<li>Mỗi tiêu chí chấm band 0 đến 9. Điểm Task là trung bình 4 tiêu chí, làm tròn đến 0.5 gần nhất. Task 2 tính gấp đôi Task 1 khi ra band Viết.</li>' +
-      '<li>Một band chỉ đúng khi bài khớp đủ các đặc điểm tích cực của band đó. Đặc điểm tiêu cực (in đậm trong bảng mô tả chính thức) giữ điểm ở mức thấp hơn.</li>' +
-      '<li>Bài từ 20 từ trở xuống: cả 4 tiêu chí tối đa Band 1. Band 0 chỉ dùng khi thí sinh không làm bài, viết bằng ngôn ngữ khác tiếng Anh, hoặc có bằng chứng đã học thuộc toàn bộ bài.</li></ul></details>';
+      '<li>Mỗi tiêu chí chấm band 0 đến 9, có thể chấm nửa band (ví dụ 6.5). Điểm Task là trung bình 4 tiêu chí, làm tròn đến 0.5 gần nhất. Task 2 tính gấp đôi Task 1 khi ra band Viết.</li>' +
+      '<li>Dưới mỗi ô là mô tả của band đang chọn, lấy từ bảng Writing Band Descriptors (public version) của IELTS, phần Academic. Khi chọn nửa band, trang hiện mô tả của hai band liền kề.</li>' +
+      '<li>Task 1 chấm Task Achievement, Task 2 chấm Task Response. Ba tiêu chí còn lại giống nhau ở hai Task.</li>' +
+      '<li>Band 0: không dự thi, không làm bài, hoặc chép lại một bài đã học thuộc.</li>' +
+      '<li>Theo bản cập nhật 05/2023 của IELTS, bài từ 20 từ trở xuống được chấm Band 1.</li></ul></details>';
   }
 
   var ss = function (k, v) { try { if (v === undefined) return JSON.parse(sessionStorage.getItem(k) || 'null'); sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } };
@@ -251,8 +266,8 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
         var readCrit = function () { var o = {}; [1, 2].forEach(function (t) { o['t' + t] = {}; critKeys.forEach(function (k) { var v = $('#c' + t + k).value; o['t' + t][k] = v === '' ? null : +v; }); }); return o; };
         var applyCrit = function (t, setBand) {
           var vals = critKeys.map(function (k) { return $('#c' + t + k).value; }), n = vals.filter(function (v) { return v !== ''; }).length, el = $('#c' + t + 'avg');
-          critKeys.forEach(function (k) { var e = $('#c' + t + k); e.closest('label').classList.toggle('set', e.value !== ''); });
-          var tiny = wcs[t - 1] != null && wcs[t - 1] <= 20 ? ' · Bài từ 20 từ trở xuống: tối đa Band 1' : '';
+          critKeys.forEach(function (k) { var e = $('#c' + t + k); e.closest('label').classList.toggle('set', e.value !== ''); $('#d' + t + k).innerHTML = descHTML(t, k, e.value); });
+          var tiny = wcs[t - 1] != null && wcs[t - 1] <= 20 ? ' · Bài từ 20 từ trở xuống: chấm Band 1 (bản cập nhật 05/2023)' : '';
           if (n < 4) { el.textContent = (n ? 'Còn ' + (4 - n) + ' tiêu chí chưa chấm' : '') + tiny; return; }
           var avg = vals.reduce(function (a, v) { return a + +v; }, 0) / 4, b = half(avg);
           el.textContent = 'Trung bình ' + avg.toFixed(2) + ' → Task ' + t + ': ' + b.toFixed(1) + tiny;
