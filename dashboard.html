@@ -59,7 +59,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     </div>
 
     <section id="vlist" style="display:grid;gap:16px">
-      <div class="card scroll"><table class="tbl" id="tbl"><thead><tr><th>Họ tên</th><th>Lớp</th><th>Mã</th><th>Nghe</th><th>Đọc</th><th>Viết</th><th>Nói</th><th>Overall</th><th>Rời trang</th></tr></thead><tbody></tbody></table></div>
+      <div class="card scroll"><table class="tbl" id="tbl"><thead><tr><th>Họ tên</th><th>Lớp</th><th>Mã</th><th>Nghe</th><th>Đọc</th><th>Viết</th><th>Nói</th><th>Overall</th><th>Rời trang</th><th></th></tr></thead><tbody></tbody></table></div>
       <div id="detail"></div>
     </section>
 
@@ -155,9 +155,9 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       var h = '';
       rows.forEach(function (x) {
         var blur = ['L', 'R', 'W'].reduce(function (a, k) { return a + ((x[k] && x[k].blur) || 0); }, 0);
-        h += '<tr data-code="' + x.code + '"' + (x.code === pick ? ' class="pick"' : '') + '><td><b>' + T.esc(x.name) + '</b></td><td>' + T.esc(x.cls) + '</td><td class="num">' + x.code + '</td><td>' + cell(x, 'L') + '</td><td>' + cell(x, 'R') + '</td><td>' + cell(x, 'W') + '</td><td>' + cell(x, 'S') + '</td><td><b>' + (typeof x.overall === 'number' ? x.overall.toFixed(1) : '') + '</b></td><td>' + (blur ? blur + ' lần' : '') + '</td></tr>';
+        h += '<tr data-code="' + x.code + '"' + (x.code === pick ? ' class="pick"' : '') + '><td><b>' + T.esc(x.name) + '</b></td><td>' + T.esc(x.cls) + '</td><td class="num">' + x.code + '</td><td>' + cell(x, 'L') + '</td><td>' + cell(x, 'R') + '</td><td>' + cell(x, 'W') + '</td><td>' + cell(x, 'S') + '</td><td><b>' + (typeof x.overall === 'number' ? x.overall.toFixed(1) : '') + '</b></td><td>' + (blur ? blur + ' lần' : '') + '</td><td>' + (x.overall != null ? '<button class="btn ghost" style="min-height:36px;padding:0 12px;white-space:nowrap" data-link="' + x.code + '">Copy link</button>' : '') + '</td></tr>';
       });
-      $('#tbl tbody').innerHTML = h || '<tr><td colspan="9" class="small">Chưa có học viên. Tạo mã ở tab Mã vào thi.</td></tr>';
+      $('#tbl tbody').innerHTML = h || '<tr><td colspan="10" class="small">Chưa có học viên. Tạo mã ở tab Mã vào thi.</td></tr>';
       var c = '';
       rows.forEach(function (x) {
         var asg = x.asg ? [].concat(x.asg.L, x.asg.R, x.asg.W, x.asg.S).join(' ') : '';
@@ -172,7 +172,162 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     if (r) { r[skill] = Object.assign({}, r[skill] || {}, { band: band }); r.overall = x.overall; ss('ts-ielts-tlist', rows); }
     flash = 'Đã lưu điểm ' + (skill === 'W' ? 'Viết' : 'Nói'); draw();
   }
-  $('#tbl').onclick = function (e) { var tr = e.target.closest('tr[data-code]'); if (tr) { pick = tr.getAttribute('data-code'); T.$$('#tbl tr').forEach(function (x) { x.classList.toggle('pick', x === tr); }); open(pick); } };
+  function resultLink(code) { return new URL('result.html?code=' + encodeURIComponent(code), location.href).href; }
+  function copyText(t) {
+    var legacy = function () { var a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(a); a.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} a.remove(); return ok; };
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return legacy(); });
+    return Promise.resolve(legacy());
+  }
+  $('#tbl').onclick = function (e) {
+    var lb = e.target.closest('button[data-link]');
+    if (lb) {
+      var code = lb.getAttribute('data-link'), url = resultLink(code);
+      copyText(url).then(function (ok) {
+        if (ok) { lb.textContent = 'Đã copy'; setTimeout(function () { lb.textContent = 'Copy link'; }, 1800); }
+        else window.prompt('Sao chép link kết quả:', url);
+      });
+      return;
+    }
+    var tr = e.target.closest('tr[data-code]'); if (tr) { pick = tr.getAttribute('data-code'); T.$$('#tbl tr').forEach(function (x) { x.classList.toggle('pick', x === tr); }); open(pick); } };
+
+  function ansGrid(sk, ids, rec) {
+    if (!rec) return '<p class="small">Chưa nộp.</p>';
+    var h = '<p><b>Band ' + T.bandText(rec.band) + '</b> · ' + rec.raw + ' trên 40 câu đúng · rời trang ' + ((rec.meta || {}).blur || 0) + ' lần</p><div class="ans" style="margin-top:8px">';
+    for (var q = 1; q <= 40; q++) h += '<span class="' + (rec.detail && rec.detail[q] ? 'y' : '') + '"><b>' + q + '.</b> ' + T.esc((rec.answers || {})[q] || '(trống)') + '</span>';
+    return h + '</div>';
+  }
+  function open(code) {
+    if (details[code]) show(details[code]); else $('#detail').innerHTML = '<p class="small">Đang tải bài làm...</p>';
+    tapi('tGet', { code: code }).then(function (r) {
+      if (pick !== code) return;
+      if (!r.ok) { $('#detail').innerHTML = '<p class="msg err">' + T.err(r) + '</p>'; return; }
+      var same = details[code] && JSON.stringify(details[code]) === JSON.stringify(r);
+      details[code] = r;
+      var typing = document.activeElement && /TEXTAREA|SELECT/.test(document.activeElement.tagName) && $('#detail').contains(document.activeElement);
+      if (!same && !typing) show(r);
+    });
+  }
+  /* The questions the student was asked, so the marker can read them next to each recording. */
+  function speakingPrompt(sq, part, idx) {
+    if (!sq) return '';
+    var li = function (x) { return '<li>' + T.esc(x) + '</li>'; }, h = '', asked = function (list) { return idx.map(function (i) { return list[i]; }); };
+    if (part === 1) h = '<p><b>' + T.esc(sq.p1.topics.join(' · ')) + '</b> <span class="small">(3 câu được hỏi)</span></p><ol>' + asked(sq.p1.qs).map(li).join('') + '</ol>';
+    else if (part === 2) h = '<p><b>' + T.esc(sq.p2.title) + '</b></p><p class="small">You should say:</p><ul>' + sq.p2.points.map(li).join('') + '</ul><p>' + T.esc(sq.p2.explain) + '</p>';
+    else h = '<p><b>' + T.esc(sq.p3.topic) + '</b> <span class="small">(3 câu được hỏi)</span></p><ol>' + asked(sq.p3.qs).map(li).join('') + '</ol>';
+    return '<div class="qprompt" lang="en">' + h + '</div>';
+  }
+  function show(r) {
+      var code = r.code;
+      var d = r.data, a = d.asg || {}, h = '';
+      h += '<section class="card" style="display:grid;gap:8px"><h2>' + T.esc(r.name) + ' <span class="small">' + T.esc(r.cls) + ' · ' + r.code + '</span></h2><p class="small">Đề: Nghe ' + (a.L || []).join(', ') + ' · Đọc ' + (a.R || []).join(', ') + ' · Viết ' + (a.W || []).join(', ') + ' · Nói ' + (a.S || []).join(', ') + '</p>' +
+        '<p><b>Overall: ' + (typeof r.overall === 'number' ? r.overall.toFixed(1) : 'chưa đủ 4 kỹ năng') + '</b></p>' +
+        '<div class="row">' + T.ORDER.map(function (k) { return '<button class="btn ghost" style="min-height:36px;padding:0 12px" data-reset="' + k + '">Mở lại ' + T.SKVI[k] + '</button>'; }).join('') + '</div></section>';
+      h += '<section class="card"><h2>Nghe</h2>' + ansGrid('L', a.L, d.L) + '</section>';
+      h += '<section class="card"><h2>Đọc</h2>' + ansGrid('R', a.R, d.R) + '</section>';
+      // writing
+      h += '<section class="card" style="display:grid;gap:12px"><h2>Viết</h2>';
+      if (!d.W) h += '<p class="small">Chưa nộp.</p>';
+      else {
+        var w1 = BANK.W[a.W[0]] || {};   // the chart or diagram the student described, for marking Task 1
+        h += '<div class="grid2"><div><p><b>Task 1</b> · ' + d.W.wc1 + ' từ</p><p class="small">' + T.esc(w1.prompt || '') + '</p><div lang="en" style="margin:8px 0 10px">' + T.chart(w1) + '</div><div class="essay-view">' + T.esc(d.W.t1) + '</div></div>' +
+          '<div><p><b>Task 2</b> · ' + d.W.wc2 + ' từ</p><p class="small">' + T.esc((BANK.W[a.W[1]] || {}).prompt || '') + '</p><div class="essay-view">' + T.esc(d.W.t2) + '</div></div></div>' +
+          critHelp() + critRows(1) + critRows(2) +
+          '<div class="wsum"><b>Điểm Viết</b><label class="small">Task 1 <select class="sel" id="wb1">' + bands + '</select></label><label class="small">Task 2 <select class="sel" id="wb2">' + bands + '</select></label><label class="small">Band Viết <select class="sel" id="wb">' + bands + '</select></label><span class="small" id="wsug"></span></div>' +
+          '<textarea class="essay" id="wc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.W.comment || '') + '</textarea><div class="row"><button class="btn blue" id="wsave">Lưu điểm Viết</button><span class="small" id="wmsg"></span></div>';
+      }
+      h += '</section>';
+      // speaking
+      h += '<section class="card" style="display:grid;gap:12px"><h2>Nói</h2>';
+      var f = (d.S && d.S.files) || {};
+      var sid = (a.S || [])[0], sq = BANK.S[sid] || null;
+      if (!Object.keys(f).length) h += '<p class="small">Chưa có file ghi âm.</p>';
+      [1, 2, 3].forEach(function (p) {
+        if (!f[p] && !sq) return;
+        var head = f[p] ? '<p><b>Part ' + p + '</b> · ' + T.fmt(f[p].sec || 0) + ' · <a href="' + f[p].url + '" target="_blank" rel="noopener">Mở trên Google Drive</a></p>' : '<p><b>Part ' + p + '</b> · <span class="small">chưa có file ghi âm</span></p>';
+        var player = f[p] ? '<iframe class="au" src="https://drive.google.com/file/d/' + f[p].id + '/preview" loading="lazy" title="Speaking Part ' + p + '"></iframe>' : '';
+        h += '<div>' + head + speakingPrompt(sq, p, sq && p !== 2 ? T.speakingPick(sq, sid, r.code, p) : null) + player + '</div>';
+      });
+      if (d.S) {
+        var cr = d.S.crit || {};
+        h += '<p class="small">Mô tả band theo bảng Speaking Band Descriptors của IELTS. Thí sinh phải khớp đủ các đặc điểm tích cực của band, và được chấm theo mức trung bình trên cả các phần của bài thi. Có thể chấm nửa band (ví dụ 6.5).</p><div class="wgrid">' + [['sfc', 'Fluency & Coherence'], ['slr', 'Lexical Resource'], ['sgra', 'Grammatical Range & Accuracy'], ['sp', 'Pronunciation']].map(function (c) { return '<div class="wcell"><label class="wtile set"><span class="wname">' + c[1] + '</span><select class="sel" id="' + c[0] + '">' + bands9 + '</select></label><div class="wdesc" id="d' + c[0] + '" lang="en"></div></div>'; }).join('') + '</div><div class="wsum"><label class="small">Band Nói <select class="sel" id="sb">' + bands + '</select></label><span class="small" id="ssug"></span></div>' +
+          '<textarea class="essay" id="sc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.S.comment || '') + '</textarea><div class="row"><button class="btn blue" id="ssave">Lưu điểm Nói</button><span class="small" id="smsg"></span></div>';
+      }
+      h += '</section>';
+      $('#detail').innerHTML = h;
+
+      T.$$('[data-reset]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-reset');
+          T.confirm('Mở lại phần ' + T.SKVI[k] + '?', 'Học viên sẽ làm lại phần này từ đầu bằng cùng mã. Kết quả cũ của phần này sẽ bị xóa.', 'Mở lại').then(function (y) { if (y) tapi('tReset', { code: code, skill: k, clear: true }).then(function () { delete details[code]; var rr = rowOf(code); if (rr) { rr.st[k] = { s: 'open' }; rr[k] = null; rr.overall = null; } flash = 'Đã mở lại ' + T.SKVI[k]; draw(); open(code); }); });
+        };
+      });
+      if (d.W) {
+        var sw = function () { var x = +$('#wb1').value, y = +$('#wb2').value; $('#wsug').textContent = 'Gợi ý: ' + half((x + 2 * y) / 3).toFixed(1) + ' (Task 2 tính gấp đôi)'; };
+        $('#wb1').value = d.W.b1 != null ? d.W.b1 : 5; $('#wb2').value = d.W.b2 != null ? d.W.b2 : 5; $('#wb').value = d.W.band != null ? d.W.band : 5; sw();
+        $('#wb1').onchange = $('#wb2').onchange = function () { sw(); $('#wb').value = half((+$('#wb1').value + 2 * +$('#wb2').value) / 3); };
+        var ck = 'ts-ielts-wcrit-' + code, critKeys = WCRIT.map(function (c) { return c.k; }), wcs = [d.W.wc1, d.W.wc2], savedCrit = d.W.crit || null;
+        if (!savedCrit) { try { savedCrit = JSON.parse(localStorage.getItem(ck) || 'null'); } catch (e) {} }
+        var readCrit = function () { var o = {}; [1, 2].forEach(function (t) { o['t' + t] = {}; critKeys.forEach(function (k) { var v = $('#c' + t + k).value; o['t' + t][k] = v === '' ? null : +v; }); }); return o; };
+        var applyCrit = function (t, setBand) {
+          var vals = critKeys.map(function (k) { return $('#c' + t + k).value; }), n = vals.filter(function (v) { return v !== ''; }).length, el = $('#c' + t + 'avg');
+          critKeys.forEach(function (k) { var e = $('#c' + t + k); e.closest('label').classList.toggle('set', e.value !== ''); $('#d' + t + k).innerHTML = descHTML(t, k, e.value); });
+          var tiny = wcs[t - 1] != null && wcs[t - 1] <= 20 ? ' · Bài từ 20 từ trở xuống: chấm Band 1 (bản cập nhật 05/2023)' : '';
+          if (n < 4) { el.textContent = (n ? 'Còn ' + (4 - n) + ' tiêu chí chưa chấm' : '') + tiny; return; }
+          var avg = vals.reduce(function (a, v) { return a + +v; }, 0) / 4, b = half(avg);
+          el.textContent = 'Trung bình ' + avg.toFixed(2) + ' → Task ' + t + ': ' + b.toFixed(1) + tiny;
+          if (setBand) { $('#wb' + t).value = b; $('#wb').value = half((+$('#wb1').value + 2 * +$('#wb2').value) / 3); sw(); }
+        };
+        [1, 2].forEach(function (t) {
+          critKeys.forEach(function (k) { var v = savedCrit && savedCrit['t' + t] && savedCrit['t' + t][k]; if (v != null && v !== '') $('#c' + t + k).value = v; });
+          applyCrit(t, d.W['b' + t] == null);   // no saved Task band yet: take it from the criteria
+        });
+        T.$$('.critsel').forEach(function (el) { el.onchange = function () { applyCrit(+el.getAttribute('data-t'), true); try { localStorage.setItem(ck, JSON.stringify(readCrit())); } catch (e) {} }; });
+        $('#wsave').onclick = function () { $('#wmsg').textContent = 'Đang lưu...'; tapi('tGrade', { code: code, skill: 'W', b1: +$('#wb1').value, b2: +$('#wb2').value, band: +$('#wb').value, comment: $('#wc').value, crit: readCrit() }).then(function (x) { $('#wmsg').textContent = x.ok ? 'Đã lưu' : T.err(x); if (x.ok) { var dd = details[code]; if (dd) { Object.assign(dd.data.W, { b1: +$('#wb1').value, b2: +$('#wb2').value, band: +$('#wb').value, comment: $('#wc').value, crit: readCrit() }); dd.overall = x.overall; } saved(code, 'W', +$('#wb').value, x); } }); };
+      }
+      if (d.S) {
+        var cr2 = d.S.crit || {};
+        $('#sfc').value = cr2.fc != null ? cr2.fc : 5; $('#slr').value = cr2.lr != null ? cr2.lr : 5; $('#sgra').value = cr2.gra != null ? cr2.gra : 5; $('#sp').value = cr2.p != null ? cr2.p : 5;
+        var showS = function () { [['sfc', 'fc'], ['slr', 'lr'], ['sgra', 'gra'], ['sp', 'p']].forEach(function (c) { $('#d' + c[0]).innerHTML = window.BAND_DESC ? descFrom(BAND_DESC.s[c[1]], $('#' + c[0]).value) : ''; }); };
+        var ss = function () { showS(); var v = half((+$('#sfc').value + +$('#slr').value + +$('#sgra').value + +$('#sp').value) / 4); $('#ssug').textContent = 'Gợi ý: ' + v.toFixed(1); return v; };
+        $('#sb').value = d.S.band != null ? d.S.band : ss(); ss();
+        ['#sfc', '#slr', '#sgra', '#sp'].forEach(function (id) { $(id).onchange = function () { $('#sb').value = ss(); }; });
+        $('#ssave').onclick = function () { $('#smsg').textContent = 'Đang lưu...'; tapi('tGrade', { code: code, skill: 'S', crit: { fc: +$('#sfc').value, lr: +$('#slr').value, gra: +$('#sgra').value, p: +$('#sp').value }, band: +$('#sb').value, comment: $('#sc').value }).then(function (x) { $('#smsg').textContent = x.ok ? 'Đã lưu' : T.err(x); if (x.ok) { var dd = details[code]; if (dd) { Object.assign(dd.data.S, { crit: { fc: +$('#sfc').value, lr: +$('#slr').value, gra: +$('#sgra').value, p: +$('#sp').value }, band: +$('#sb').value, comment: $('#sc').value }); dd.overall = x.overall; } saved(code, 'S', +$('#sb').value, x); } }); };
+      }
+  }
+
+  /* codes */
+  $('#create').onclick = function () {
+    var list = $('#names').value.split('\n').map(function (l) { var p = l.split(','); return { name: (p[0] || '').trim(), cls: p.slice(1).join(',').trim() }; }).filter(function (x) { return x.name; });
+    if (!list.length) return;
+    $('#create').disabled = true;
+    tapi('tCreate', { list: list }).then(function (r) {
+      $('#create').disabled = false;
+      var m = $('#cmsg'); m.hidden = false;
+      if (!r.ok) { m.className = 'msg err'; m.textContent = T.err(r); return; }
+      m.className = 'msg ok'; m.textContent = 'Đã tạo ' + r.made.length + ' mã.'; $('#names').value = '';
+      r.made.forEach(function (x) { rows.push({ code: x.code, name: x.name, cls: x.cls, asg: x.asg, st: {}, L: null, R: null, W: null, S: null, overall: null }); });
+      ss('ts-ielts-tlist', rows); draw();
+    });
+  };
+  $('#ctbl').onclick = function (e) {
+    var code = e.target.getAttribute('data-del'); if (!code) return;
+    T.confirm('Xóa mã ' + code + '?', 'Toàn bộ bài làm của học viên này trong bảng tính sẽ bị xóa. File ghi âm trên Drive vẫn còn.', 'Xóa').then(function (y) { if (y) tapi('tDelete', { code: code }).then(function (r) { if (!r.ok) return; rows = rows.filter(function (x) { return x.code !== code; }); ss('ts-ielts-tlist', rows); if (pick === code) { pick = null; $('#detail').innerHTML = ''; } draw(); }); });
+  };
+  function listText(sep) { return rows.map(function (x) { return [x.name, x.cls, x.code].join(sep); }).join('\n'); }
+  $('#csv').onclick = function () {
+    var csv = '﻿Họ tên,Lớp,Mã\n' + rows.map(function (x) { return ['"' + String(x.name).replace(/"/g, '""') + '"', '"' + String(x.cls).replace(/"/g, '""') + '"', x.code].join(','); }).join('\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'ma-vao-thi-ielts.csv'; a.click();
+  };
+  $('#copy').onclick = function () {
+    var t = rows.map(function (x) { return x.name + ': mã ' + x.code; }).join('\n') + '\nLink làm bài: ' + location.href.replace(/dashboard\.html.*$/, '');
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { var m = $('#cmsg'); m.hidden = false; m.className = 'msg ok'; m.textContent = 'Đã sao chép.'; })
+      .catch(function () { $('#names').value = t; $('#names').select(); });
+  };
+})();
+</script>
+</body>
+</html>
+ = e.target.closest('tr[data-code]'); if (tr) { pick = tr.getAttribute('data-code'); T.$$('#tbl tr').forEach(function (x) { x.classList.toggle('pick', x === tr); }); open(pick); } };
 
   function ansGrid(sk, ids, rec) {
     if (!rec) return '<p class="small">Chưa nộp.</p>';
