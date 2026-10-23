@@ -127,14 +127,40 @@
     var q = S['p' + part];
     return A.pickIdx(String(code).toUpperCase() + ':' + id + ':p' + part, q.qs.length, 3, part === 1 ? q.starts : []);
   };
-  /* The published descriptor of a band (tbl maps a band to its points). A half band shows the two bands either side. */
+  /* The published descriptor of a band (tbl maps a band to its points). A half band shows the two bands either side.
+     Each descriptor is written twice, Vietnamese and English; the page shows one of them (html[data-dl]), Vietnamese by default. */
+  function viTable(tbl) {
+    var E = window.BAND_DESC, V = window.BAND_DESC_VI;
+    if (!E || !V) return null;
+    for (var t in E) for (var k in E[t]) if (E[t][k] === tbl) return V[t] && V[t][k] || null;
+    return null;
+  }
   A.bandDesc = function (tbl, v) {
     if (v === '' || v == null || !tbl) return '';
-    var n = +v, lo = Math.floor(n), hi = Math.ceil(n), one = function (b) {
-      return '<b>Band ' + b + '</b><ul>' + (tbl[b] || []).map(function (x) { return '<li>' + A.esc(x) + '</li>'; }).join('') + '</ul>';
+    var n = +v, lo = Math.floor(n), hi = Math.ceil(n), vi = viTable(tbl);
+    var one = function (t, b) { return '<b>Band ' + b + '</b><ul>' + (t[b] || []).map(function (x) { return '<li>' + A.esc(x) + '</li>'; }).join('') + '</ul>'; };
+    var build = function (t, between) {
+      return lo === hi ? one(t, lo) : '<span class="small" style="display:block;margin-bottom:2px">' + between + '</span>' + one(t, lo) + one(t, hi);
     };
-    return lo === hi ? one(lo) : '<span class="small" style="display:block;margin-bottom:2px">Giữa Band ' + lo + ' và Band ' + hi + '</span>' + one(lo) + one(hi);
+    var en = build(tbl, 'Between Band ' + lo + ' and Band ' + hi);
+    if (!vi) return en;
+    return '<div class="dl-vi">' + build(vi, 'Giữa Band ' + lo + ' và Band ' + hi) + '</div><div class="dl-en" lang="en">' + en + '</div>';
   };
+  /* Language switch for the descriptors. One setting for the whole page, remembered in this browser. */
+  A.descLang = function (v) {
+    if (v === undefined) { try { return localStorage.getItem('ts-ielts-dl') === 'en' ? 'en' : 'vi'; } catch (e) { return 'vi'; } }
+    document.documentElement.setAttribute('data-dl', v);
+    try { localStorage.setItem('ts-ielts-dl', v); } catch (e) {}
+    return v;
+  };
+  A.dlToggle = function () {
+    return '<span class="dltog" role="group" aria-label="Ngôn ngữ mô tả band"><button type="button" data-dl-set="vi">Tiếng Việt</button><button type="button" data-dl-set="en">English</button></span>';
+  };
+  document.documentElement.setAttribute('data-dl', A.descLang());
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-dl-set]');
+    if (b) A.descLang(b.getAttribute('data-dl-set'));
+  });
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */

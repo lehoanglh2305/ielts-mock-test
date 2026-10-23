@@ -24,6 +24,7 @@
 </main>
 <script src="assets/app.js"></script>
 <script src="assets/descriptors.js"></script>
+<script src="assets/descriptors-vi.js"></script>
 <script>
 (function () {
   var T = TS, $ = T.$;
@@ -42,12 +43,13 @@
     });
   };
   /* One card per task or skill: for each criterion, the score the marker gave and the published descriptor of that band. */
+  var NAME_VI = { 'Task Achievement': 'Hoàn thành yêu cầu đề bài', 'Task Response': 'Đáp ứng đề bài', 'Coherence and cohesion': 'Mạch lạc và liên kết', 'Lexical resource': 'Vốn từ vựng', 'Grammatical range and accuracy': 'Phạm vi và độ chính xác ngữ pháp', 'Fluency and coherence': 'Độ trôi chảy và mạch lạc', 'Pronunciation': 'Phát âm' };
   function descCard(title, items) {
     var cells = items.filter(function (c) { return typeof c[1] === 'number'; }).map(function (c) {
-      return '<div class="wcell" lang="en"><span style="font-weight:600">' + T.esc(c[0]) + ' · <span style="color:var(--cobalt)">Band ' + (c[1] % 1 ? c[1].toFixed(1) : c[1]) + '</span></span><div class="wdesc">' + T.bandDesc(c[2], c[1]) + '</div></div>';
+      return '<div class="wcell"><span style="font-weight:600">' + T.esc(c[0]) + (NAME_VI[c[0]] ? '<span class="dl-vi small" style="display:block;font-weight:400">' + NAME_VI[c[0]] + '</span>' : '') + '<span style="display:block;color:var(--cobalt)">Band ' + (c[1] % 1 ? c[1].toFixed(1) : c[1]) + '</span></span><div class="wdesc">' + T.bandDesc(c[2], c[1]) + '</div></div>';
     });
     if (!cells.length) return '';
-    return '<section class="card"><h2>' + title + '</h2><p class="small" style="margin-top:6px">Mô tả của từng tiêu chí ở band bạn nhận được, lấy từ bảng Band Descriptors của IELTS. Dùng để hiểu điểm của mình, không thay thế kết quả IELTS chính thức.</p><div class="wgrid" style="margin-top:12px">' + cells.join('') + '</div></section>';
+    return '<section class="card"><div class="dlhead"><h2>' + title + '</h2>' + T.dlToggle() + '</div><p class="small" style="margin-top:6px">Mô tả của từng tiêu chí ở band bạn nhận được, lấy từ bảng Band Descriptors của IELTS. Dùng để hiểu điểm của mình, không thay thế kết quả IELTS chính thức.<span class="dl-vi"> Bản tiếng Việt là bản dịch tham khảo của lớp The Standard, bản tiếng Anh mới là bản gốc.</span></p><div class="wgrid" style="margin-top:12px">' + cells.join('') + '</div></section>';
   }
   function draw(r) {
       var x = r.res, st = r.st || {}, h = '';
