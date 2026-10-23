@@ -180,3 +180,12 @@ footer.foot a{color:var(--cream)}
 .tf label,.sel{min-height:44px}
 .qnav .nums a{min-width:44px;height:44px;width:auto}
 @media (max-width:899px){.qnav .nums{gap:6px}}
+
+/* band descriptor grid, used by the teacher dashboard and the result page */
+.wgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.wcell{display:grid;gap:6px;align-content:start;min-width:0}
+.wdesc{font-size:13px;line-height:1.35;color:var(--mocha)}
+.wdesc:empty{display:none}
+.wdesc b{color:var(--cocoa)}
+.wdesc ul{margin:2px 0 6px;padding-left:16px;list-style:revert}
+@media (max-width:760px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}

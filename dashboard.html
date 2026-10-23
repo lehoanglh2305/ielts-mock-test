@@ -29,19 +29,12 @@
 .whead{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
 .whead b{font:800 22px var(--display);letter-spacing:.02em}
 .whead .wavg{margin-left:auto;font-weight:600;color:var(--cobalt)}
-.wgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 .wtile{display:grid;gap:6px;align-content:start;border:1.5px solid var(--sand);border-radius:12px;padding:8px 10px;background:var(--paper);font-size:14px;line-height:1.25;cursor:pointer;transition:border-color .15s var(--ease),background .15s var(--ease)}
 .wtile .wname{font-weight:600;color:var(--mocha)}
 .wtile .sel{width:100%}
 .wtile.set{border-color:var(--cobalt);background:#eef3fd}
-.wcell{display:grid;gap:6px;align-content:start;min-width:0}
-.wdesc{font-size:13px;line-height:1.35;color:var(--mocha)}
-.wdesc:empty{display:none}
-.wdesc b{color:var(--cocoa)}
-.wdesc ul{margin:2px 0 6px;padding-left:16px;list-style:revert}
 .wsum{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#fff;border:1px solid var(--sand);border-radius:14px;padding:10px 14px}
 .wsum>b{font:800 18px var(--display);letter-spacing:.02em}
-@media (max-width:760px){.wgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (min-width:900px){.grid2{grid-template-columns:1fr 1fr}}
 iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px;background:#fff}
 </style>
@@ -92,7 +85,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
   var tapi = function (a, p) { return T.api(a, Object.assign({ key: KEY }, p || {})); };
   var STV = { open: '', started: '<span class="chip run">đang làm</span>', done: '' };
   var bands = ''; for (var b = 0; b <= 9; b += 0.5) bands += '<option value="' + b + '">' + b.toFixed(1) + '</option>';
-  var bands9 = ''; for (var c = 0; c <= 9; c += 1) bands9 += '<option value="' + c + '">' + c + '</option>';
+  var bands9 = ''; for (var c = 0; c <= 9; c += 0.5) bands9 += '<option value="' + c + '">' + (c % 1 ? c.toFixed(1) : c) + '</option>';   // criterion scores, in half bands
   var half = function (x) { return Math.floor(x * 2 + 0.5) / 2; };
   /* The four Writing criteria. Task 1 is marked on Task Achievement, Task 2 on Task Response. */
   var critOpts = '<option value="">–</option>'; for (var ci = 0; ci <= 9; ci += 0.5) critOpts += '<option value="' + ci + '">' + (ci % 1 ? ci.toFixed(1) : ci) + '</option>';
@@ -108,13 +101,8 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     }).join('') + '</div></div>';
   }
   /* The published descriptor of the chosen band; a half band shows the two bands either side of it. */
-  function descHTML(t, k, v) {
-    if (v === '' || !window.BAND_DESC) return '';
-    var n = +v, lo = Math.floor(n), hi = Math.ceil(n), tbl = BAND_DESC['t' + t][k], one = function (b) {
-      return '<b>Band ' + b + '</b><ul>' + (tbl[b] || []).map(function (x) { return '<li>' + T.esc(x) + '</li>'; }).join('') + '</ul>';
-    };
-    return lo === hi ? one(lo) : '<span class="small" style="display:block;margin-bottom:2px">Giữa Band ' + lo + ' và Band ' + hi + '</span>' + one(lo) + one(hi);
-  }
+  function descFrom(tbl, v) { return T.bandDesc(tbl, v); }
+  function descHTML(t, k, v) { return window.BAND_DESC ? descFrom(BAND_DESC['t' + t][k], v) : ''; }
   function critHelp() {
     return '<details class="small"><summary>Cách dùng 4 tiêu chí</summary><ul style="margin:6px 0 0;padding-left:20px;list-style:revert">' +
       '<li>Mỗi tiêu chí chấm band 0 đến 9, có thể chấm nửa band (ví dụ 6.5). Điểm Task là trung bình 4 tiêu chí, làm tròn đến 0.5 gần nhất. Task 2 tính gấp đôi Task 1 khi ra band Viết.</li>' +
@@ -245,7 +233,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       });
       if (d.S) {
         var cr = d.S.crit || {};
-        h += '<div class="wgrid">' + [['sfc', 'Fluency & Coherence'], ['slr', 'Lexical Resource'], ['sgra', 'Grammatical Range & Accuracy'], ['sp', 'Pronunciation']].map(function (c) { return '<label class="wtile set"><span class="wname">' + c[1] + '</span><select class="sel" id="' + c[0] + '">' + bands9 + '</select></label>'; }).join('') + '</div><div class="wsum"><label class="small">Band Nói <select class="sel" id="sb">' + bands + '</select></label><span class="small" id="ssug"></span></div>' +
+        h += '<p class="small">Mô tả band theo bảng Speaking Band Descriptors của IELTS. Thí sinh phải khớp đủ các đặc điểm tích cực của band, và được chấm theo mức trung bình trên cả các phần của bài thi. Có thể chấm nửa band (ví dụ 6.5).</p><div class="wgrid">' + [['sfc', 'Fluency & Coherence'], ['slr', 'Lexical Resource'], ['sgra', 'Grammatical Range & Accuracy'], ['sp', 'Pronunciation']].map(function (c) { return '<div class="wcell"><label class="wtile set"><span class="wname">' + c[1] + '</span><select class="sel" id="' + c[0] + '">' + bands9 + '</select></label><div class="wdesc" id="d' + c[0] + '" lang="en"></div></div>'; }).join('') + '</div><div class="wsum"><label class="small">Band Nói <select class="sel" id="sb">' + bands + '</select></label><span class="small" id="ssug"></span></div>' +
           '<textarea class="essay" id="sc" style="min-height:110px" placeholder="Nhận xét cho học viên (học viên xem được)">' + T.esc(d.S.comment || '') + '</textarea><div class="row"><button class="btn blue" id="ssave">Lưu điểm Nói</button><span class="small" id="smsg"></span></div>';
       }
       h += '</section>';
@@ -283,7 +271,8 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       if (d.S) {
         var cr2 = d.S.crit || {};
         $('#sfc').value = cr2.fc != null ? cr2.fc : 5; $('#slr').value = cr2.lr != null ? cr2.lr : 5; $('#sgra').value = cr2.gra != null ? cr2.gra : 5; $('#sp').value = cr2.p != null ? cr2.p : 5;
-        var ss = function () { var v = half((+$('#sfc').value + +$('#slr').value + +$('#sgra').value + +$('#sp').value) / 4); $('#ssug').textContent = 'Gợi ý: ' + v.toFixed(1); return v; };
+        var showS = function () { [['sfc', 'fc'], ['slr', 'lr'], ['sgra', 'gra'], ['sp', 'p']].forEach(function (c) { $('#d' + c[0]).innerHTML = window.BAND_DESC ? descFrom(BAND_DESC.s[c[1]], $('#' + c[0]).value) : ''; }); };
+        var ss = function () { showS(); var v = half((+$('#sfc').value + +$('#slr').value + +$('#sgra').value + +$('#sp').value) / 4); $('#ssug').textContent = 'Gợi ý: ' + v.toFixed(1); return v; };
         $('#sb').value = d.S.band != null ? d.S.band : ss(); ss();
         ['#sfc', '#slr', '#sgra', '#sp'].forEach(function (id) { $(id).onchange = function () { $('#sb').value = ss(); }; });
         $('#ssave').onclick = function () { $('#smsg').textContent = 'Đang lưu...'; tapi('tGrade', { code: code, skill: 'S', crit: { fc: +$('#sfc').value, lr: +$('#slr').value, gra: +$('#sgra').value, p: +$('#sp').value }, band: +$('#sb').value, comment: $('#sc').value }).then(function (x) { $('#smsg').textContent = x.ok ? 'Đã lưu' : T.err(x); if (x.ok) { var dd = details[code]; if (dd) { Object.assign(dd.data.S, { crit: { fc: +$('#sfc').value, lr: +$('#slr').value, gra: +$('#sgra').value, p: +$('#sp').value }, band: +$('#sb').value, comment: $('#sc').value }); dd.overall = x.overall; } saved(code, 'S', +$('#sb').value, x); } }); };
