@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css?v=20261023a">
+<link rel="stylesheet" href="assets/app.css?v=20261024a">
 <style>
 .tbl{width:100%;border-collapse:collapse;font-size:15px;min-width:760px}
 .tbl th,.tbl td{border-bottom:1px solid var(--sand);padding:8px 10px;text-align:left;vertical-align:top}
@@ -75,10 +75,10 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
     </section>
   </div>
 </main>
-<script src="assets/content.js?v=20261023a"></script>
-<script src="assets/descriptors.js?v=20261023a"></script>
-<script src="assets/descriptors-vi.js?v=20261023a"></script>
-<script src="assets/app.js?v=20261023a"></script>
+<script src="assets/content.js?v=20261024a"></script>
+<script src="assets/descriptors.js?v=20261024a"></script>
+<script src="assets/descriptors-vi.js?v=20261024a"></script>
+<script src="assets/app.js?v=20261024a"></script>
 <script>
 (function () {
   var T = TS, $ = T.$, KEY = '', rows = [], pick = null, flash = '';
@@ -156,7 +156,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       var h = '';
       rows.forEach(function (x) {
         var blur = ['L', 'R', 'W'].reduce(function (a, k) { return a + ((x[k] && x[k].blur) || 0); }, 0);
-        h += '<tr data-code="' + x.code + '"' + (x.code === pick ? ' class="pick"' : '') + '><td><b>' + T.esc(x.name) + '</b></td><td>' + T.esc(x.cls) + '</td><td class="num">' + x.code + '</td><td>' + cell(x, 'L') + '</td><td>' + cell(x, 'R') + '</td><td>' + cell(x, 'W') + '</td><td>' + cell(x, 'S') + '</td><td><b>' + (typeof x.overall === 'number' ? x.overall.toFixed(1) : '') + '</b></td><td>' + (blur ? blur + ' lần' : '') + '</td><td>' + (x.overall != null ? '<button class="btn ghost" style="min-height:36px;padding:0 12px;white-space:nowrap" data-link="' + x.code + '">Copy link</button>' : '') + '</td></tr>';
+        h += '<tr data-code="' + x.code + '"' + (x.code === pick ? ' class="pick"' : '') + '><td><b>' + T.esc(x.name) + '</b></td><td>' + T.esc(x.cls) + '</td><td class="num">' + x.code + '</td><td>' + cell(x, 'L') + '</td><td>' + cell(x, 'R') + '</td><td>' + cell(x, 'W') + '</td><td>' + cell(x, 'S') + '</td><td><b>' + (typeof x.overall === 'number' ? x.overall.toFixed(1) : '') + '</b>' + (T.cefr && T.cefr(x.overall) ? ' <span class="small">' + T.cefr(x.overall) + '</span>' : '') + '</td><td>' + (blur ? blur + ' lần' : '') + '</td><td>' + (x.overall != null ? '<button class="btn ghost" style="min-height:36px;padding:0 12px;white-space:nowrap" data-link="' + x.code + '">Copy link</button>' : '') + '</td></tr>';
       });
       $('#tbl tbody').innerHTML = h || '<tr><td colspan="10" class="small">Chưa có học viên. Tạo mã ở tab Mã vào thi.</td></tr>';
       var c = '';
@@ -221,7 +221,7 @@ iframe.au{width:100%;height:80px;border:1px solid var(--sand);border-radius:10px
       var code = r.code;
       var d = r.data, a = d.asg || {}, h = '';
       h += '<section class="card" style="display:grid;gap:8px"><h2>' + T.esc(r.name) + ' <span class="small">' + T.esc(r.cls) + ' · ' + r.code + '</span></h2><p class="small">Đề: Nghe ' + (a.L || []).join(', ') + ' · Đọc ' + (a.R || []).join(', ') + ' · Viết ' + (a.W || []).join(', ') + ' · Nói ' + (a.S || []).join(', ') + '</p>' +
-        '<p><b>Overall: ' + (typeof r.overall === 'number' ? r.overall.toFixed(1) : 'chưa đủ 4 kỹ năng') + '</b></p>' +
+        '<p><b>Overall: ' + (typeof r.overall === 'number' ? r.overall.toFixed(1) : 'chưa đủ 4 kỹ năng') + '</b>' + (T.cefr && T.cefr(r.overall) ? ' <span class="small">· CEFR ' + T.cefr(r.overall) + ' (gần đúng)</span>' : '') + '</p>' +
         '<div class="row">' + T.ORDER.map(function (k) { return '<button class="btn ghost" style="min-height:36px;padding:0 12px" data-reset="' + k + '">Mở lại ' + T.SKVI[k] + '</button>'; }).join('') + '</div></section>';
       h += '<section class="card"><h2>Nghe</h2>' + ansGrid('L', a.L, d.L) + '</section>';
       h += '<section class="card"><h2>Đọc</h2>' + ansGrid('R', a.R, d.R) + '</section>';
