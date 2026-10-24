@@ -6,7 +6,7 @@
 <title>Kết quả · IELTS Mock Test</title>
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css?v=20261023a">
+<link rel="stylesheet" href="assets/app.css?v=20261024a">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
@@ -22,14 +22,16 @@
   <div id="out" style="display:grid;gap:16px"></div>
   <a class="btn ghost" href="index.html" style="justify-self:start">Về trang chính</a>
 </main>
-<script src="assets/app.js?v=20261023a"></script>
-<script src="assets/descriptors.js?v=20261023a"></script>
-<script src="assets/descriptors-vi.js?v=20261023a"></script>
+<script src="assets/app.js?v=20261024a"></script>
+<script src="assets/descriptors.js?v=20261024a"></script>
+<script src="assets/descriptors-vi.js?v=20261024a"></script>
 <script>
 (function () {
   var T = TS, $ = T.$;
   var s = T.session(); if (s && s.code) $('#code').value = s.code;
   var qc = (new URLSearchParams(location.search).get('code') || '').trim().toUpperCase(); if (/^[A-Z0-9]{6}$/.test(qc)) $('#code').value = qc;
+  var cf = function (b) { var c = T.cefr ? T.cefr(b) : ''; return c ? 'CEFR ' + c : ''; };
+  var join = function (a, b) { return a && b ? a + ' · ' + b : a || b; };
   function row(label, val, sub) { return '<div class="tile ' + label + '" style="pointer-events:none"><span class="stamp">' + T.SK[label] + '</span><h3>' + val + '</h3><span>' + (sub || '') + '</span></div>'; }
   $('#go').onclick = function () {
     var c = $('#code').value.trim().toUpperCase(); $('#err').hidden = true;
@@ -58,14 +60,15 @@
       var x = r.res, st = r.st || {}, h = '';
       var stv = function (sk) { var v = (st[sk] || {}).s || 'open'; return v === 'open' ? 'Chưa làm' : v === 'started' ? 'Đang làm dở' : ''; };
       h += '<section class="result"><span class="stamp">' + T.esc(r.name) + (r.cls ? ' · ' + T.esc(r.cls) : '') + '</span><p class="big">' + (typeof x.overall === 'number' ? 'Overall ' + x.overall.toFixed(1) : 'Chưa đủ 4 kỹ năng') + '</p>' +
-        '<p>' + (typeof x.overall === 'number' ? 'Điểm tổng là trung bình 4 kỹ năng, làm tròn đến 0.5 gần nhất.' : 'Điểm tổng sẽ hiện khi có đủ điểm Nghe, Đọc, Viết và Nói.') + '</p></section>';
+        '<p>' + (typeof x.overall === 'number' ? 'Điểm tổng là trung bình 4 kỹ năng, làm tròn đến 0.5 gần nhất.' + (cf(x.overall) ? ' Mức tương ứng trên khung CEFR: ' + cf(x.overall).slice(5) + '.' : '') : 'Điểm tổng sẽ hiện khi có đủ điểm Nghe, Đọc, Viết và Nói.') + '</p></section>';
       h += '<div class="tiles">';
-      h += row('L', x.L ? 'Band ' + T.bandText(x.L.band) + ' (ước tính)' : stv('L'), x.L ? x.L.raw + ' trên 40 câu đúng' : '');
-      h += row('R', x.R ? 'Band ' + T.bandText(x.R.band) + ' (ước tính)' : stv('R'), x.R ? x.R.raw + ' trên 40 câu đúng' : '');
-      h += row('W', x.W ? (typeof x.W.band === 'number' ? 'Band ' + T.bandText(x.W.band) : 'Chờ chấm') : stv('W'), x.W && typeof x.W.t1 === 'number' ? 'Task 1: ' + x.W.t1.toFixed(1) + ' · Task 2: ' + (typeof x.W.t2 === 'number' ? x.W.t2.toFixed(1) : '...') : '');
-      h += row('S', x.S ? (typeof x.S.band === 'number' ? 'Band ' + T.bandText(x.S.band) : 'Chờ chấm') : stv('S'), '');
+      h += row('L', x.L ? 'Band ' + T.bandText(x.L.band) + ' (ước tính)' : stv('L'), x.L ? join(x.L.raw + ' trên 40 câu đúng', cf(x.L.band)) : '');
+      h += row('R', x.R ? 'Band ' + T.bandText(x.R.band) + ' (ước tính)' : stv('R'), x.R ? join(x.R.raw + ' trên 40 câu đúng', cf(x.R.band)) : '');
+      h += row('W', x.W ? (typeof x.W.band === 'number' ? 'Band ' + T.bandText(x.W.band) : 'Chờ chấm') : stv('W'), join(x.W && typeof x.W.t1 === 'number' ? 'Task 1: ' + x.W.t1.toFixed(1) + ' · Task 2: ' + (typeof x.W.t2 === 'number' ? x.W.t2.toFixed(1) : '...') : '', x.W ? cf(x.W.band) : ''));
+      h += row('S', x.S ? (typeof x.S.band === 'number' ? 'Band ' + T.bandText(x.S.band) : 'Chờ chấm') : stv('S'), x.S ? cf(x.S.band) : '');
       h += '</div>';
       h += '<p class="small">Band Nghe và Đọc là ước tính từ đề rút gọn, chỉ để tham khảo, không thay thế kết quả IELTS chính thức.</p>';
+      if ([x.L, x.R, x.W, x.S].some(function (k) { return k && cf(k.band); }) || cf(x.overall)) h += '<p class="small">CEFR là so sánh gần đúng theo bảng IELTS and the CEFR của IELTS.org (B1: 4.0 đến 5.0, B2: 5.5 đến 6.0, C1: 6.5 đến 7.5, C2: 8.0 đến 9.0). Đây không phải chứng nhận trình độ, và mỗi trường có thể quy đổi khác nhau.</p>';
       if (x.W && x.W.comment) h += '<section class="card"><h2>Nhận xét phần Viết</h2><p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.W.comment) + '</p></section>';
       if (x.S && x.S.comment) h += '<section class="card"><h2>Nhận xét phần Nói</h2>' + (x.S.crit ? '<p class="small" style="margin-top:6px">Fluency and Coherence ' + x.S.crit.fc + ' · Lexical Resource ' + x.S.crit.lr + ' · Grammar ' + x.S.crit.gra + ' · Pronunciation ' + x.S.crit.p + '</p>' : '') + '<p style="white-space:pre-wrap;margin-top:8px">' + T.esc(x.S.comment) + '</p></section>';
       if (window.BAND_DESC) {

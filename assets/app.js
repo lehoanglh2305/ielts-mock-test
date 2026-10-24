@@ -161,6 +161,9 @@
     var b = e.target.closest && e.target.closest('[data-dl-set]');
     if (b) A.descLang(b.getAttribute('data-dl-set'));
   });
+  /* CEFR level next to an IELTS band, using the ranges on the IELTS "IELTS and the CEFR" page (ielts.org):
+     B1 4.0 to 5.0, B2 5.5 to 6.0, C1 6.5 to 7.5, C2 8.0 to 9.0. Below 4.0 that page gives no level, so none is shown. */
+  A.cefr = function (b) { b = +b; if (!(b >= 4)) return ''; return b >= 8 ? 'C2' : b >= 6.5 ? 'C1' : b >= 5.5 ? 'B2' : 'B1'; };
   A.flow = function (v) { try { if (v === undefined) return sessionStorage.getItem('ts-ielts-flow') === 'full'; if (v) sessionStorage.setItem('ts-ielts-flow', 'full'); else sessionStorage.removeItem('ts-ielts-flow'); } catch (e) { return false; } };
 
   /* dom */
