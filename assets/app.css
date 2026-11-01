@@ -195,3 +195,20 @@ html[data-dl="en"] .dl-vi,html:not([data-dl="en"]) .dl-en{display:none}
 .dltog button{font:inherit;font-size:13px;font-weight:600;min-height:36px;padding:0 14px;border:0;background:transparent;color:var(--cocoa);cursor:pointer}
 html:not([data-dl="en"]) .dltog [data-dl-set="vi"],html[data-dl="en"] .dltog [data-dl-set="en"]{background:var(--cocoa);color:var(--paper)}
 .dlhead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
+
+/* exam rules shared with the entry test: watermark, warning badge, timer hide, help, flags */
+.gwm{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden;opacity:.035;font-size:18px;font-weight:600;display:flex;flex-wrap:wrap;align-content:flex-start;gap:60px 80px;padding:40px;transform:rotate(-18deg) scale(1.4)}
+.gvio{white-space:nowrap}.gvio b{color:var(--bad)}
+.hbtn{border:2px solid var(--cocoa);background:transparent;border-radius:999px;min-height:38px;padding:0 12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.tbox{display:flex;align-items:center;gap:2px}
+.teye{border:0;background:transparent;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--mocha);cursor:pointer}
+.teye:hover{background:var(--cream);color:var(--cocoa)}
+.timer.off{font:600 14px var(--sans);letter-spacing:0;background:var(--sand);color:var(--cocoa)}
+.qnav .nums a{position:relative}
+.qnav .nums a.flag::after{content:"";position:absolute;top:-1px;right:-1px;border-style:solid;border-width:0 11px 11px 0;border-color:transparent var(--bad) transparent transparent;border-top-right-radius:6px}
+.qnav .nums a.cur{outline:2px solid var(--cocoa);outline-offset:1px}
+.qflag{flex:0 0 auto;border:1.5px solid var(--sand);background:#fff;border-radius:999px;min-height:36px;padding:0 12px;font-size:14px;font-weight:600;color:var(--mocha);cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.qflag.on{border-color:var(--bad);color:var(--bad);background:#fbe1dc}
+html.guarded body{-webkit-user-select:none;user-select:none}
+html.guarded input,html.guarded textarea,html.guarded select{-webkit-user-select:text;user-select:text}
+@media (max-width:640px){.hbtn{padding:0 9px;font-size:13px}.bar .who .t{display:none}.gvio{display:none}.timer{min-width:0;padding:8px 10px;font-size:19px}.teye{width:28px}.bar .who b{max-width:28vw}}

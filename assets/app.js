@@ -186,33 +186,113 @@
   };
 
   /* top bar */
-  A.bar = function (title) {
+  A.bar = function (title, helpExtra) {
     var s = A.session() || {};
     var h = document.createElement('header'); h.className = 'bar';
+    var eye = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
     h.innerHTML = '<div class="in"><a href="index.html" aria-label="Trang chính"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96"></a>' +
-      '<div class="row" style="gap:12px;flex-wrap:nowrap;min-width:0"><div class="who"><span class="t">' + A.esc(title || '') + '</span>' + (s.name ? '<b>' + A.esc(s.name) + '</b>' : '') + '</div><div class="timer idle num" id="timer">--:--</div></div></div>';
+      '<div class="row" style="gap:10px;flex-wrap:nowrap;min-width:0"><div class="who"><span class="t">' + A.esc(title || '') + '</span>' + (s.name ? '<b>' + A.esc(s.name) + '</b>' : '') + '</div>' +
+      '<span class="gvio small" id="gvio" hidden></span><button class="hbtn" id="helpBtn" type="button">Trợ giúp</button>' +
+      '<div class="tbox"><div class="timer idle num" id="timer">--:--</div><button class="teye" id="teye" type="button" title="Ẩn hoặc hiện đồng hồ" aria-label="Ẩn hoặc hiện đồng hồ">' + eye + '</button></div></div></div>';
     document.body.insertBefore(h, document.body.firstChild);
+    h.querySelector('#helpBtn').onclick = function () { A.help(helpExtra); };
+    h.querySelector('#teye').onclick = function () { A.hideTimer(!A.hideTimer()); var t = document.getElementById('timer'); t && t._tick && t._tick(); };
   };
+  A.hideTimer = function (v) { if (v === undefined) return !!ls('ts-ielts-hidetimer'); ls('ts-ielts-hidetimer', v ? 1 : null); };
 
-  /* countdown */
+  /* countdown; the clock can be hidden but always shows in the last 5 minutes */
   A.Timer = function (el, endAt, onEnd, warnAt) {
     var done = false;
     function tick() {
       var left = (endAt - Date.now()) / 1000;
-      el.textContent = A.fmt(left);
+      var hide = A.hideTimer() && left > 300 && !done;
+      el.textContent = hide ? 'Đã ẩn' : A.fmt(left);
       el.classList.remove('idle');
-      el.classList.toggle('warn', left <= (warnAt || 300));
+      el.classList.toggle('off', hide);
+      el.classList.toggle('warn', !hide && left <= (warnAt || 300));
       if (left <= 0 && !done) { done = true; clearInterval(iv); onEnd && onEnd(); }
     }
+    el._tick = tick;
     var iv = setInterval(tick, 500); tick();
-    return { stop: function () { done = true; clearInterval(iv); }, set: function (t) { endAt = t; tick(); } };
+    return { stop: function () { done = true; clearInterval(iv); el._tick = null; }, set: function (t) { endAt = t; tick(); } };
   };
 
-  /* leaving the page or switching tabs during an exam */
-  A.watchBlur = function (meta) {
-    meta.blur = meta.blur || 0;
-    document.addEventListener('visibilitychange', function () { if (document.hidden) meta.blur++; });
+  /* leaving the page or switching tabs during an exam (kept for old drafts; A.guard now does the counting) */
+  A.watchBlur = function (meta) { meta.blur = meta.blur || 0; };
+
+  /* ---------- exam rules, the same as the entry test ----------
+     Full screen, a warning on each violation (leaving the page, switching app or tab, leaving full screen,
+     reloading, print screen), copy, paste and right click blocked, a watermark with the student's name.
+     At maxVio violations onLimit runs (auto submit); without onLimit the page only warns and records.
+     meta.blur keeps the number of violations (shown as Rời trang on the dashboard), meta.vlog the details. */
+  A.guard = function (o) {
+    var meta = o.meta, max = o.maxVio || 3, on = false, last = 0, unloading = false, t0 = Date.now();
+    meta.blur = meta.blur || 0; meta.vlog = meta.vlog || [];
+    var root = document.documentElement, fsOK = !!(root.requestFullscreen || root.webkitRequestFullscreen);
+    function inFS() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+    function goFS() { try { if (root.requestFullscreen) return root.requestFullscreen().catch(function () {}); if (root.webkitRequestFullscreen) root.webkitRequestFullscreen(); } catch (e) {} return Promise.resolve(); }
+    function exitFS() { try { if (inFS()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {} }
+    var wm = document.createElement('div'); wm.className = 'gwm'; wm.hidden = true; document.body.appendChild(wm);
+    var ov = document.createElement('div'); ov.className = 'ov'; ov.hidden = true;
+    ov.innerHTML = '<div class="card" role="alertdialog" aria-modal="true" style="text-align:center"><h2 class="gw-t" style="color:var(--bad)"></h2><p class="gw-m"></p><div class="row" style="justify-content:center"><button class="btn blue gw-b">Quay lại bài làm</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector('.gw-b').onclick = function () { goFS().then(function () { ov.hidden = true; o.onReturn && o.onReturn(); }); };
+    function badge() { var b = document.getElementById('gvio'); if (b) { b.hidden = false; b.innerHTML = 'Cảnh báo <b>' + meta.vlog.length + '</b>/' + max; } }
+    function violate(reason) {
+      if (!on || unloading) return;
+      var now = Date.now(); if (now - last < 2500) return; last = now;
+      meta.vlog.push({ t: Math.round((now - t0) / 1000), r: reason }); meta.blur = meta.vlog.length; o.save && o.save(); badge();
+      var n = meta.vlog.length;
+      if (n >= max && o.onLimit) { stop(); o.onLimit('Tự động nộp do vi phạm ' + n + ' lần'); return; }
+      ov.querySelector('.gw-t').textContent = 'Cảnh báo vi phạm lần ' + n + (o.onLimit ? '/' + max : '');
+      ov.querySelector('.gw-m').textContent = reason + '. ' + (o.onLimit ? (n < max ? 'Thêm ' + (max - n) + ' lần nữa, bài sẽ tự động nộp.' : '') : 'Lần vi phạm này đã được ghi lại và giáo viên xem được.');
+      ov.hidden = false;
+    }
+    document.addEventListener('visibilitychange', function () { if (document.hidden) violate('Bạn đã rời khỏi trang làm bài'); });
+    window.addEventListener('blur', function () { setTimeout(function () { if (!document.hasFocus()) violate('Bạn đã chuyển sang cửa sổ hoặc ứng dụng khác'); }, 300); });
+    function onFS() { if (fsOK && !inFS()) violate('Bạn đã thoát chế độ toàn màn hình'); }
+    document.addEventListener('fullscreenchange', onFS); document.addEventListener('webkitfullscreenchange', onFS);
+    var typing = function (t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT'); };
+    ['copy', 'cut', 'paste', 'contextmenu', 'dragstart', 'drop'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (on) e.preventDefault(); }); });
+    document.addEventListener('selectstart', function (e) { if (on && !typing(e.target)) e.preventDefault(); });
+    document.addEventListener('keydown', function (e) {
+      if (!on) return;
+      var k = (e.key || '').toLowerCase(), c = e.ctrlKey || e.metaKey;
+      var blocked = k === 'f12' || (c && e.shiftKey && ['i', 'j', 'c', 'k'].indexOf(k) > -1) || (c && ['u', 's', 'p', 'c', 'x', 'v', 'f', 'g'].indexOf(k) > -1) || (c && k === 'a' && !typing(e.target));
+      if (blocked) e.preventDefault();
+      if (k === 'printscreen') { e.preventDefault(); violate('Bạn đã nhấn phím chụp màn hình'); }
+    });
+    document.addEventListener('keyup', function (e) { if (on && (e.key || '').toLowerCase() === 'printscreen') violate('Bạn đã nhấn phím chụp màn hình'); });
+    window.addEventListener('beforeunload', function (e) {
+      if (!on) return;
+      unloading = true; setTimeout(function () { unloading = false; }, 1500);
+      meta.live = true; o.save && o.save(); e.preventDefault(); e.returnValue = '';
+    });
+    document.documentElement.classList.add('guarded');
+    function start() {
+      if (on) return;
+      var label = (o.name || '') + ' · ' + (o.code || ''), h = '';
+      for (var i = 0; i < 60; i++) h += '<span>' + A.esc(label) + '</span>';
+      wm.innerHTML = h; wm.hidden = false; on = true;
+      if (meta.live) { meta.live = false; last = 0; violate('Bạn đã tải lại trang trong lúc làm bài'); }   // reload counts once
+      meta.live = true; o.save && o.save(); badge();
+    }
+    function stop() { on = false; meta.live = false; wm.hidden = true; ov.hidden = true; exitFS(); o.save && o.save(); }
+    return { goFS: goFS, start: start, stop: stop, count: function () { return meta.vlog.length; } };
   };
+  /* Shown in the Help box of every exam page */
+  A.HELP_RULES = '<ul class="clean"><li>Bài làm ở chế độ toàn màn hình. Thoát toàn màn hình, chuyển tab hoặc chuyển sang ứng dụng khác đều bị tính là một lần vi phạm.</li>' +
+    '<li>Vi phạm 3 lần, bài tự động nộp (phần Nói chỉ cảnh báo và ghi lại).</li><li>Tải lại trang cũng bị tính là một lần vi phạm. Đồng hồ vẫn chạy.</li>' +
+    '<li>Không sao chép, dán, chuột phải hay chụp màn hình trong lúc làm bài.</li>' +
+    '<li>Bấm vào số câu ở thanh dưới cùng để đến câu đó. Bấm nút Gắn cờ để đánh dấu câu đang làm cần xem lại; câu gắn cờ có góc đỏ.</li>' +
+    '<li>Biểu tượng con mắt cạnh đồng hồ dùng để ẩn hoặc hiện thời gian. Khi còn dưới 5 phút, đồng hồ luôn hiện.</li></ul>';
+  A.help = function (extra) {
+    var ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="card" role="dialog" aria-modal="true" style="max-width:560px;max-height:88vh;overflow:auto"><h2>Trợ giúp</h2>' + (extra || '') + '<h3 style="font:700 20px var(--display)">Quy định làm bài</h3>' + A.HELP_RULES + '<div class="row"><button class="btn blue" data-a="1">Đã hiểu</button></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function (e) { if (e.target.getAttribute('data-a')) ov.remove(); });
+  };
+  A.rulesNote = '<p class="msg info" style="margin:0 0 12px">Khi bắt đầu, bài chuyển sang chế độ toàn màn hình. Rời trang, chuyển ứng dụng, thoát toàn màn hình hoặc tải lại trang đều bị tính là vi phạm.</p>';
 
   /* ---------- question renderers (Listening and Reading) ---------- */
   function rowHTML(text) {
@@ -319,15 +399,34 @@
   };
   A.answered = function (answers, q) { return !!(answers[q] && String(answers[q]).trim()); };
 
-  A.qnav = function (holder, answers, from, to, onJump) {
-    var h = '';
+  /* Question numbers at the bottom. flags (optional) keeps the questions marked for review;
+     the Gắn cờ button marks the question the student is on (last answer box touched or number tapped). */
+  A.qnav = function (holder, answers, from, to, onJump, flags, onFlag) {
+    var h = '', cur = from;
     for (var i = from; i <= to; i++) h += '<a href="#w' + i + '" data-n="' + i + '">' + i + '</a>';
     holder.innerHTML = h;
+    var fb = null;
+    if (flags) {
+      fb = document.createElement('button'); fb.type = 'button'; fb.className = 'qflag';
+      holder.parentNode.insertBefore(fb, holder.nextSibling);
+      fb.onclick = function () { flags[cur] = !flags[cur]; if (!flags[cur]) delete flags[cur]; onFlag && onFlag(); update(); };
+      document.addEventListener('focusin', function (e) { var q = e.target.getAttribute && e.target.getAttribute('data-q'); if (q) { cur = +q; update(); } });
+      document.addEventListener('change', function (e) { var q = e.target.getAttribute && e.target.getAttribute('data-q'); if (q) { cur = +q; update(); } });
+    }
     holder.addEventListener('click', function (e) {
       var n = e.target.getAttribute('data-n'); if (!n) return;
-      e.preventDefault(); onJump && onJump(+n);
+      e.preventDefault(); cur = +n; update(); onJump && onJump(+n);
     });
-    return function update() { A.$$('a', holder).forEach(function (a) { a.classList.toggle('on', A.answered(answers, a.getAttribute('data-n'))); }); };
+    function update() {
+      A.$$('a', holder).forEach(function (a) {
+        var n = a.getAttribute('data-n');
+        a.classList.toggle('on', A.answered(answers, n));
+        if (flags) { a.classList.toggle('flag', !!flags[n]); a.classList.toggle('cur', +n === cur); }
+      });
+      if (fb) fb.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M5 21V4h11l-1.5 4L16 12H7v9z"/></svg> ' + (flags[cur] ? 'Bỏ cờ câu ' : 'Gắn cờ câu ') + cur;
+      if (fb) fb.classList.toggle('on', !!flags[cur]);
+    }
+    return update;
   };
 
   A.resultCard = function (sk, r, total) {

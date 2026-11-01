@@ -6,7 +6,7 @@
 <title>Speaking · IELTS Mock Test</title>
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css?v=20261024a">
+<link rel="stylesheet" href="assets/app.css?v=20261101b">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
@@ -16,6 +16,7 @@
   <section class="card" id="intro">
     <span class="stamp">Speaking · 3 phần · khoảng 10 phút</span>
     <h2 style="margin-top:10px">Phần Nói</h2>
+    <div id="rn"></div>
     <ul class="clean" style="margin:12px 0">
       <li><b>Part 1:</b> giám khảo hỏi 3 câu về các chủ đề quen thuộc. Trả lời mỗi câu khoảng 20 đến 30 giây.</li>
       <li><b>Part 2:</b> bạn có 1 phút chuẩn bị, sau đó nói 1 đến 2 phút về chủ đề trên thẻ.</li>
@@ -43,15 +44,16 @@
   <div id="done"></div>
 </main>
 <audio id="au"></audio>
-<script src="assets/content.js?v=20261024a"></script>
-<script src="assets/app.js?v=20261024a"></script>
+<script src="assets/content.js?v=20261101b"></script>
+<script src="assets/app.js?v=20261101b"></script>
 <script>
 (function () {
   var T = TS, $ = T.$, sk = 'S';
   var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
-  T.bar('Speaking · Nói');
+  T.bar('Speaking · Nói', '<p>Nghe hết câu hỏi rồi trả lời. Phần Nói chỉ cảnh báo và ghi lại vi phạm, không tự nộp, để không mất file ghi âm.</p>');
   var key = T.draftKey(s.code, sk), draft = T.ls(key) || { parts: {}, meta: {} };
   function save() { T.ls(key, draft); }
+  var guard = T.guard({ meta: draft.meta, name: s.name, code: s.code, save: save });
   var stream = null, ac = null, set = null, rec = null, chunks = [], recStart = 0, recIv = null, ups = {}, au = $('#au');
   var MIME = (function () {
     if (!window.MediaRecorder) return null;
@@ -198,7 +200,7 @@
     if (!draft.allDone || finishing) return;
     var pending = [1, 2, 3].filter(function (p) { return ups[p] && ups[p].st !== 'ok'; });
     if (pending.length) { ctrl('<span class="small">Đang chờ gửi xong bài ghi âm. Đừng đóng trang.</span>'); return; }
-    finishing = true;
+    finishing = true; guard.stop();
     T.api('submitS', { code: s.code, dev: T.dev(), meta: draft.meta }).then(function (r) {
       if (!r.ok) { finishing = false; $('#serr').textContent = T.err(r); $('#serr').hidden = false; ctrl('<button class="btn" id="again">Nộp lại</button>'); $('#again').onclick = maybeFinish; return; }
       T.ls(key, null); T.ls(key + '-t0', null); T.markInfo(sk, 'done', { submitted: true }); try { stream && stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
@@ -209,12 +211,13 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    guard.goFS();
     T.begin(sk, {
       ready: run,
       wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
       fail: function (r) {
         try { if (rec && rec.state !== 'inactive') { rec.onstop = null; rec.stop(); } } catch (e) {}
-        au.pause(); clearInterval(recIv); $('#rec').hidden = true;
+        au.pause(); clearInterval(recIv); $('#rec').hidden = true; guard.stop();
         $('#exam').hidden = true; $('#intro').hidden = false;
         $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu phần Nói';
         $('#err').textContent = T.err(r); $('#err').hidden = false;
@@ -224,7 +227,7 @@
       var S = BANK.S[r.ids[0]];
       Object.keys(r.files || {}).forEach(function (p) { draft.parts[p] = 'up'; ups[p] = { st: 'ok' }; });
       draft.started = true; save();
-      $('#intro').hidden = true; $('#exam').hidden = false;
+      $('#intro').hidden = true; $('#exam').hidden = false; guard.start();
       var t0 = Date.now(), clk = function () { $('#timer').classList.remove('idle'); $('#timer').textContent = T.fmt((Date.now() - t0) / 1000); }; clk(); setInterval(clk, 1000);
       var chain = Promise.resolve();
       var sid = r.ids[0], i1 = T.speakingPick(S, sid, s.code, 1), i3 = T.speakingPick(S, sid, s.code, 3);
@@ -235,6 +238,7 @@
       chain.then(function () { steps(4); $('#cue').hidden = true; card('Bạn đã hoàn thành phần Nói. Đang gửi bài cho giáo viên...'); draft.allDone = true; save(); maybeFinish(); });
     }
   };
+  $('#rn').innerHTML = T.rulesNote;
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Nói đang làm dở'; }
 })();
 </script>

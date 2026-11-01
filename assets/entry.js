@@ -94,7 +94,7 @@
   }
   function newState(r, offset) {
     return { code: r.code, name: r.name, cls: r.cls, t0: r.t0 + offset, aStartedAt: r.t0 + offset, section: 'A', ans: {}, flags: {}, cur: { A: 0, L: 0, R: 0 },
-      vlog: [], hideTimer: false, audio: {}, perm: { g: E.partA.grammar.map(function (q) { return shuffle(q.o.length); }), v: E.partA.vocab.map(function (q) { return shuffle(q.o.length); }) } };
+      vlog: [], hideTimer: false, audio: {}, perm: {} };
   }
 
   /* ---------- login ---------- */
@@ -193,7 +193,7 @@
     var extra = (miss ? 'Bạn còn ' + miss + ' câu chưa làm. ' : '') + (fl ? 'Có ' + fl + ' câu đang gắn cờ. ' : '');
     if (sec === 'A') ask('Nộp phần A?', extra + 'Sau khi chuyển sang Listening, bạn không quay lại phần A được.', function () { goSection('L'); });
     else if (sec === 'L') {
-      var allDone = E.listening.every(function (s) { return (S.audio[s.id] || {}).done; });
+      var allDone = LS().every(function (s) { return (S.audio[s.id] || {}).done; });
       ask('Nộp phần Listening?', extra + (allDone ? '' : 'Audio chưa phát hết, nếu chuyển bây giờ bạn sẽ không nghe tiếp được. ') + 'Sau khi chuyển sang Reading, bạn không quay lại Listening được.', function () { goSection('R'); });
     } else ask('Nộp bài?', extra + 'Sau khi nộp, bạn không sửa bài được nữa.', function () { finish('Học viên nộp bài'); });
   }
@@ -213,9 +213,14 @@
   }
 
   /* ---------- navigator & flags ---------- */
+  /* this code's questions: 20 grammar and 20 vocabulary items, one reading, one listening set */
+  function P() { if (!S.pick) S.pick = window.ENTRY_PICK(S.code); return S.pick; }
+  function LS() { return E.listenings[P().l]; }
+  function RD() { return E.readings[P().r]; }
+  function itemA(i) { var p = P(), g = i < 20, idx = g ? p.g[i] : p.v[i - 20]; return { key: (g ? 'Ag' : 'Av') + idx, g: g, q: (g ? E.partA.grammar : E.partA.vocab)[idx] }; }
   function keysOf(sec) {
     var k = [], i;
-    if (sec === 'A') { for (i = 0; i < 20; i++) k.push('Ag' + i); for (i = 0; i < 20; i++) k.push('Av' + i); }
+    if (sec === 'A') { for (i = 0; i < 40; i++) k.push(itemA(i).key); }
     else for (i = 1; i <= PART[sec].total; i++) k.push(sec + i);
     return k;
   }
@@ -252,8 +257,8 @@
 
   /* ---------- Part A ---------- */
   function renderA() {
-    var i = S.cur.A, isG = i < 20, list = isG ? E.partA.grammar : E.partA.vocab, li = isG ? i : i - 20;
-    var q = list[li], key = (isG ? 'Ag' : 'Av') + li, perm = S.perm[isG ? 'g' : 'v'][li];
+    var i = S.cur.A, it = itemA(i), isG = it.g, q = it.q, key = it.key;
+    var perm = S.perm[key] || (S.perm[key] = shuffle(q.o.length));
     $('paneL').innerHTML = '<div class="stemwrap"><p class="ptitle">' + (isG ? 'Ngữ pháp' : 'Từ vựng') + ' · Chọn đáp án đúng nhất</p>' +
       '<div class="qhead"><span class="qbig">' + (i + 1) + '</span><span class="tagl">Câu ' + (i + 1) + ' / 40</span><span class="tagl">' + esc(q.level) + '</span></div>' +
       '<div class="stem" lang="en">' + esc(q.q).replace('___', '<u>&nbsp;</u>') + '</div></div>';
@@ -315,8 +320,8 @@
   var aud = $('aud');
   function renderL() {
     var left = '<p class="ptitle">Audio và hướng dẫn</p>', right = '<p class="ptitle">Câu trả lời của bạn</p>';
-    E.listening.forEach(function (sec, si) {
-      var st = S.audio[sec.id] || {}, ready = si === 0 || (S.audio[E.listening[si - 1].id] || {}).done;
+    LS().forEach(function (sec, si) {
+      var st = S.audio[sec.id] || {}, ready = si === 0 || (S.audio[LS()[si - 1].id] || {}).done;
       left += '<div class="lsec" id="L-' + sec.id + '"><h3>' + esc(sec.title) + '</h3>' +
         '<div class="player' + (ready ? '' : ' locked') + '" id="pl-' + sec.id + '">' +
         '<button class="btn" type="button" data-play="' + si + '"' + (st.done ? ' disabled' : '') + '>' + (st.done ? 'Đã nghe xong' : (st.t ? 'Tiếp tục nghe' : 'Bắt đầu nghe')) + '</button>' +
@@ -341,7 +346,7 @@
     $('paneL').oninput = function (e) { if (e.target.getAttribute('data-vol')) { S.vol = +e.target.value; aud.volume = S.vol; save(); } };
   }
   function playSec(si, btn) {
-    var sec = E.listening[si], st = S.audio[sec.id] = S.audio[sec.id] || {}, startAt = st.t || 0;
+    var sec = LS()[si], st = S.audio[sec.id] = S.audio[sec.id] || {}, startAt = st.t || 0;
     curSec = sec; aud.src = sec.audio; aud.volume = S.vol != null ? S.vol : 1;
     btn.disabled = true; btn.textContent = 'Đang phát';
     aud.onloadedmetadata = function () { try { aud.currentTime = startAt; } catch (e) {} };
@@ -356,7 +361,7 @@
     aud.onended = function () {
       st.done = true; st.t = 0; save(); btn.textContent = 'Đã nghe xong';
       var tm = $('tm-' + sec.id); if (tm) tm.textContent = 'Hoàn thành';
-      var next = E.listening[si + 1];
+      var next = LS()[si + 1];
       if (next) { $('pl-' + next.id).classList.remove('locked'); toast('Section tiếp theo đã mở. Nhấn Bắt đầu nghe khi sẵn sàng.'); $('L-' + next.id).scrollIntoView({ behavior: 'smooth' }); }
       else toast('Đã hết phần Listening. Kiểm tra lại đáp án rồi chuyển sang Reading.');
     };
@@ -367,11 +372,11 @@
   function stopAudio() { aud.onpause = null; try { aud.pause(); } catch (e) {} }
 
   function renderR() {
-    var R = E.reading;
+    var R = RD();
     $('paneL').innerHTML = '<article class="passage" lang="en"><p class="ptitle" lang="vi">Bài đọc</p><h2>' + esc(R.title) + '</h2>' +
       R.paragraphs.map(function (p) { return '<p><span class="pl">' + esc(p[0]) + '</span>' + esc(p[1]) + '</p>'; }).join('') + '</article>';
     var h = '<p class="ptitle">Câu trả lời của bạn</p>';
-    R.groups.forEach(function (g) { h += '<p class="ins" lang="en">' + esc(g.instructions) + '</p>'; g.items.forEach(function (it) { h += itemHTML('R', it); }); });
+    R.groups.forEach(function (g) { h += '<p class="ins" lang="en">' + esc(g.instructions) + '</p>'; if (g.box) h += '<div class="box" lang="en">' + g.box.map(function (x) { return '<div>' + esc(x) + '</div>'; }).join('') + '</div>'; g.items.forEach(function (it) { h += itemHTML('R', it, g.letters); }); });
     $('paneR').innerHTML = h; bindItems($('paneR'));
     $('paneL').onclick = $('paneL').oninput = null;
   }
