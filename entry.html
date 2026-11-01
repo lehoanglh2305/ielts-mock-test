@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kiểm tra đầu vào · The Standard</title>
+<meta name="description" content="Bài kiểm tra đầu vào 60 phút của The Standard: ngữ pháp, từ vựng, Listening và Reading.">
+<meta name="theme-color" content="#f4e6cf">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/entry.css?v=20261101a">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="wmk hidden" id="wmk"></div>
+
+<!-- status bar (exam only) -->
+<header class="xbar hidden" id="xbar">
+  <div class="bar">
+    <img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96">
+    <div class="who"><b id="whoName"></b><span id="whoPart"></span></div>
+    <div class="spacer"></div>
+    <div class="vio"><span class="lbl">Cảnh báo </span><b id="vioN">0</b>/<span id="vioMax">3</span></div>
+    <div class="timerbox">
+      <span class="timer" id="timer">--:--</span>
+      <button class="icon" id="timerToggle" title="Ẩn hoặc hiện đồng hồ" aria-label="Ẩn hoặc hiện đồng hồ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="hbtn" id="helpBtn" title="Trợ giúp">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span class="t">Trợ giúp</span>
+    </button>
+    <button class="hbtn go" id="nextPart"><span id="nextPartT">Sang phần sau</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- login -->
+<main class="page hidden" id="sc-login">
+  <a href="index.html" aria-label="Trang chính"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96"></a>
+  <section class="lid">
+    <span class="stamp">60 phút · 73 câu · A1 đến C1</span>
+    <h1>Kiểm tra đầu vào</h1>
+    <p>Bài kiểm tra ngữ pháp, từ vựng và kỹ năng Listening, Reading để The Standard xác định trình độ của bạn và gợi ý lộ trình phù hợp. Không cần làm đề IELTS trọn bộ.</p>
+  </section>
+  <section class="card" style="display:grid;gap:12px">
+    <label for="code" style="font-weight:600">Mã vào thi</label>
+    <input class="input codein" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC234">
+    <div class="row"><button class="btn blue" id="go">Vào thi</button><a class="btn ghost" href="index.html">Về trang chính</a></div>
+    <p class="msg err" id="lerr" hidden></p>
+    <p class="small">Mã do giáo viên gửi qua Zalo. Mỗi mã chỉ làm được một lần. Nhập lại mã sau khi làm xong để xem kết quả.</p>
+  </section>
+</main>
+
+<!-- rules -->
+<main class="page hidden" id="sc-rules">
+  <img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96">
+  <section class="card">
+    <p class="small">Xin chào</p>
+    <h2 id="rName"></h2>
+    <p class="small" id="rCls"></p>
+    <div class="meta"><div><b>60</b><span>phút</span></div><div><b>73</b><span>câu hỏi</span></div><div><b>3</b><span>phần, làm lần lượt</span></div></div>
+    <div id="rulesText"></div>
+    <div class="player">
+      <button class="btn" type="button" id="testSound">Thử âm thanh</button>
+      <small>Bạn sẽ nghe một tiếng chuông ngắn.</small>
+    </div>
+    <label class="check"><input type="checkbox" id="agree"> Tôi đã đọc và đồng ý với quy định làm bài.</label>
+    <p class="msg err" id="rerr" hidden></p>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn ghost" type="button" id="outBtn">Đổi mã khác</button>
+      <button class="btn red" type="button" id="startBtn" disabled>Bắt đầu làm bài</button>
+    </div>
+  </section>
+</main>
+
+<!-- resume -->
+<main class="page hidden" id="sc-resume">
+  <img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96">
+  <section class="card" style="display:grid;gap:12px">
+    <h2>Bài làm đang diễn ra</h2>
+    <p id="resumeMsg">Trang vừa được tải lại. Việc này được tính là một lần vi phạm và thời gian vẫn tiếp tục chạy.</p>
+    <p class="msg err" id="resErr" hidden></p>
+    <div class="row" style="justify-content:flex-end"><button class="btn red" id="resumeBtn">Tiếp tục làm bài</button></div>
+  </section>
+</main>
+
+<!-- result -->
+<main class="page hidden" id="sc-result" style="max-width:880px">
+  <a href="index.html" aria-label="Trang chính"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96"></a>
+  <section class="card" id="resultCard"></section>
+</main>
+
+<!-- exam workspace -->
+<section class="work hidden" id="work">
+  <div class="pane left" id="paneL"></div>
+  <div class="pane right" id="paneR"></div>
+</section>
+<footer class="xnav hidden" id="xnav">
+  <div class="fbar">
+    <div class="fpart"><b id="fPartName">Phần A</b><span id="fPartDone">0/40 câu đã làm</span></div>
+    <div class="qnav" id="qnav"></div>
+    <div class="legend"><span><i class="a"></i>Đã làm</span><span><i></i>Chưa làm</span><span><i class="f"></i>Gắn cờ</span></div>
+  </div>
+</footer>
+
+<div class="ov center hidden" id="ov"><div class="card"><h2 class="warn" id="ovTitle">Cảnh báo vi phạm</h2><p id="ovMsg"></p><div class="row"><button class="btn blue" id="ovBtn">Quay lại bài làm</button></div></div></div>
+<div class="ov center hidden" id="confirm"><div class="card"><h2 id="cfTitle">Xác nhận</h2><p id="cfMsg"></p><div class="row"><button class="btn ghost" id="cfNo">Ở lại</button><button class="btn blue" id="cfYes">Đồng ý</button></div></div></div>
+<div class="ov hidden" id="help"><div class="card"><h2>Trợ giúp</h2><div id="helpText"></div><div class="row" style="justify-content:flex-end"><button class="btn blue" id="helpClose">Đã hiểu</button></div></div></div>
+<div class="ov center hidden" id="sending"><div class="card"><h2>Đang nộp bài</h2><p id="sendMsg">Hệ thống đang chấm điểm, vui lòng chờ trong giây lát.</p></div></div>
+<div class="toast hidden" id="toast"></div>
+<audio id="aud" preload="auto"></audio>
+
+<script src="assets/entry-content.js?v=20261101a"></script>
+<script src="assets/entry.js?v=20261101a"></script>
+</body>
+</html>

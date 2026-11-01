@@ -18,12 +18,18 @@
   <a href="index.html" aria-label="The Standard"><img class="wm" src="assets/logo-black.png" alt="The Standard." width="760" height="96" style="height:30px"></a>
 
   <section class="lid">
-    <span class="stamp">IELTS Academic · 4 kỹ năng</span>
-    <h1>Thi thử IELTS</h1>
-    <p>Bài thi gồm Nghe, Đọc, Viết và Nói theo đúng định dạng IELTS Academic. Nghe và Đọc có điểm ngay sau khi nộp. Viết và Nói do giáo viên chấm.</p>
+    <span class="stamp">The Standard · Bài thi online</span>
+    <h1>Chọn bài thi</h1>
+    <p>Thi thử IELTS trọn bộ 4 kỹ năng, hoặc làm bài kiểm tra đầu vào 60 phút nếu bạn chỉ cần biết trình độ hiện tại để chọn khóa học.</p>
   </section>
 
+  <div class="tiles" id="choose">
+    <a class="tile S" href="#login" id="pickIelts"><span class="stamp">IELTS Academic</span><h3>Thi thử IELTS</h3><span>Nghe, Đọc, Viết, Nói theo đúng định dạng IELTS. Khoảng 2 giờ 45 phút.</span><span class="st">Nhập mã ở bên dưới</span></a>
+    <a class="tile" href="entry.html" style="background:var(--cobalt);color:var(--cream)"><span class="stamp">Kiểm tra đầu vào</span><h3>Kiểm tra trình độ</h3><span>Ngữ pháp, từ vựng, Listening và Reading. 60 phút, có kết quả và khóa học gợi ý ngay.</span><span class="st">Vào trang kiểm tra đầu vào</span></a>
+  </div>
+
   <section class="card" id="login">
+    <h2 style="margin-bottom:12px">Thi thử IELTS</h2>
     <div class="field">
       <label for="code">Mã vào thi</label>
       <input class="input codein" id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC234">
@@ -63,7 +69,7 @@
   var STL = { open: 'Chưa làm', started: 'Đang làm dở', done: 'Đã nộp' };
   function show(info) {
     T.session({ code: info.code, name: info.name, cls: info.cls }); T.info(info);
-    $('#login').hidden = true; $('#home').hidden = false;
+    $('#login').hidden = true; $('#choose').hidden = true; $('#home').hidden = false;
     $('#hname').textContent = info.name; $('#hcls').textContent = info.cls ? 'Lớp ' + info.cls + ' · Mã ' + info.code : 'Mã ' + info.code;
     var h = '';
     T.ORDER.forEach(function (sk) {
@@ -85,7 +91,7 @@
       $('#go').disabled = false; $('#go').textContent = 'Vào thi';
       if (!r.ok) {
         if (quiet && r.error !== 'no_code') return;          // keep the stored view when the network blips
-        if (quiet) { $('#home').hidden = true; $('#login').hidden = false; }
+        if (quiet) { $('#home').hidden = true; $('#login').hidden = false; $('#choose').hidden = false; }
         $('#err').textContent = T.err(r); $('#err').hidden = false; if (r.error === 'no_code') { T.session(null); T.info(null); } return;
       }
       show(r);
