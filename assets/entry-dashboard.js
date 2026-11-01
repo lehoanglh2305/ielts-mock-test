@@ -49,8 +49,10 @@
         ['A1', 'A2', 'B1', 'B2', 'C1'].map(function (l) { var v = lv[l] || { g: 0, v: 0 }; return '<tr><td>' + l + '</td><td>' + v.g + '/4</td><td>' + v.v + '/4</td></tr>'; }).join('') + '</tbody></table>';
       if (x.vlog) h += '<details class="small"><summary>Chi tiết vi phạm (' + x.vio + ')</summary><pre style="white-space:pre-wrap;margin:6px 0 0">' + T.esc(x.vlog) + '</pre></details>';
       var a = '';
-      E.partA.grammar.forEach(function (q, i) { var k = 'Ag' + i; a += ansCell((i + 1) + (fl[k] ? ' ⚑' : ''), an[k] !== undefined ? q.o[an[k]] : '', dt[k]); });
-      E.partA.vocab.forEach(function (q, i) { var k = 'Av' + i; a += ansCell((i + 21) + (fl[k] ? ' ⚑' : ''), an[k] !== undefined ? q.o[an[k]] : '', dt[k]); });
+      var pk = window.ENTRY_PICK(x.code);
+      pk.g.forEach(function (idx, i) { var q = E.partA.grammar[idx], k = 'Ag' + idx; a += ansCell((i + 1) + (fl[k] ? ' ⚑' : ''), an[k] !== undefined ? q.o[an[k]] : '', dt[k]); });
+      pk.v.forEach(function (idx, i) { var q = E.partA.vocab[idx], k = 'Av' + idx; a += ansCell((i + 21) + (fl[k] ? ' ⚑' : ''), an[k] !== undefined ? q.o[an[k]] : '', dt[k]); });
+      h += '<p class="small">Đề của mã này: Reading ' + T.esc(E.readings[pk.r].title) + ' · Listening bộ ' + (pk.l + 1) + '</p>';
       h += '<h3 style="font:700 20px var(--display)">Phần A</h3><div class="ans">' + a + '</div>';
       var l = ''; for (var n = 1; n <= 20; n++) l += ansCell(n + (fl['L' + n] ? ' ⚑' : ''), an['L' + n], dt['L' + n]);
       h += '<h3 style="font:700 20px var(--display)">Listening</h3><div class="ans">' + l + '</div>';
