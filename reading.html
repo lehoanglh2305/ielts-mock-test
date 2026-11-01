@@ -6,7 +6,7 @@
 <title>Reading · IELTS Mock Test</title>
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css?v=20261024a">
+<link rel="stylesheet" href="assets/app.css?v=20261101b">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
@@ -16,6 +16,7 @@
   <section class="card" id="intro">
     <span class="stamp">Academic Reading · 3 bài · 40 câu</span>
     <h2 style="margin-top:10px">Phần Đọc</h2>
+    <div id="rn"></div>
     <ul class="clean" style="margin:12px 0">
       <li>Bạn có <b>60 phút</b> cho 3 bài đọc. Nên dành khoảng 20 phút cho mỗi bài.</li>
       <li>Chọn Passage 1, 2, 3 ở phía trên để chuyển bài. Trên điện thoại, bấm Bài đọc hoặc Câu hỏi để đổi màn hình.</li>
@@ -41,17 +42,18 @@
   <div id="done"></div>
 </main>
 <nav class="qnav" id="qnav" hidden><div class="nums" id="nums"></div></nav>
-<script src="assets/content.js?v=20261024a"></script>
-<script src="assets/app.js?v=20261024a"></script>
+<script src="assets/content.js?v=20261101b"></script>
+<script src="assets/app.js?v=20261101b"></script>
 <script>
 (function () {
   var T = TS, $ = T.$, sk = 'R';
   var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
-  T.bar('Reading · Đọc');
+  T.bar('Reading · Đọc', '<p>Bên trái là bài đọc, bên phải là câu hỏi. Chuyển bài bằng các nút Passage ở phía trên. Trên điện thoại, bấm Bài đọc hoặc Câu hỏi để đổi màn hình.</p>');
   var key = T.draftKey(s.code, sk), draft = T.ls(key) || { answers: {}, tab: 0, meta: {} };
+  draft.flags = draft.flags || {};
   var answers = draft.answers, ids, timer, submitting = false, ranges = [[1, 13], [14, 26], [27, 40]];
-  T.watchBlur(draft.meta);
   function save() { T.ls(key, draft); }
+  var guard = T.guard({ meta: draft.meta, name: s.name, code: s.code, save: save, onLimit: function (why) { draft.meta.end = why; submit(true); } });
   setInterval(save, 3000);
   var narrow = window.matchMedia('(max-width: 899px)');
 
@@ -70,7 +72,7 @@
     var upd = T.qnav($('#nums'), answers, 1, 40, function (n) {
       var i = n <= 13 ? 0 : n <= 26 ? 1 : 2; show(i); view('q');
       var el = document.getElementById('w' + n) || document.getElementById('q' + n); el && el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    }, draft.flags, save);
     T.bindAnswers($('#qpane'), answers, function () { save(); upd(); });
     upd(); $('#qnav').hidden = false;
     $('#ptabs').onclick = function (e) { var i = e.target.getAttribute('data-i'); if (i !== null) { show(+i); view('p'); window.scrollTo({ top: 0, behavior: 'smooth' }); } };
@@ -94,7 +96,7 @@
   function submit(auto) {
     if (submitting) return;
     var go = function () {
-      submitting = true; timer && timer.stop();
+      submitting = true; timer && timer.stop(); guard.stop();
       $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang chấm bài...';
       T.submit({ code: s.code, skill: sk, answers: answers, dev: T.dev(), meta: draft.meta }, function (n) { $('#submitBtn').textContent = 'Máy chủ chậm, đang thử lại (' + n + ')...'; }).then(function (r) {
         if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài làm vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
@@ -113,22 +115,24 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    guard.goFS();
     T.begin(sk, {
       ready: function (r) {
         ids = r.ids; draft.started = true; save();
         $('#intro').hidden = true; $('#exam').hidden = false;
-        render(); view('p');
+        render(); view('p'); guard.start();
         timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
       },
       sync: function (r) { timer && timer.set(r.t0 + 60 * 60 * 1000); },
       wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
       fail: function (r) {
-        timer && timer.stop(); $('#exam').hidden = true; $('#qnav').hidden = true; $('#intro').hidden = false;
+        timer && timer.stop(); guard.stop(); $('#exam').hidden = true; $('#qnav').hidden = true; $('#intro').hidden = false;
         $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
         $('#err').textContent = T.err(r); $('#err').hidden = false;
       }
     });
   };
+  $('#rn').innerHTML = T.rulesNote;
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Đọc đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }
 })();
 </script>

@@ -6,7 +6,7 @@
 <title>Writing · IELTS Mock Test</title>
 <meta name="theme-color" content="#f4e6cf">
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/app.css?v=20261024a">
+<link rel="stylesheet" href="assets/app.css?v=20261101b">
 <link rel="preconnect" href="https://script.google.com">
 <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <script src="config.js"></script>
@@ -16,6 +16,7 @@
   <section class="card" id="intro">
     <span class="stamp">Academic Writing · 2 bài · 60 phút</span>
     <h2 style="margin-top:10px">Phần Viết</h2>
+    <div id="rn"></div>
     <ul class="clean" style="margin:12px 0">
       <li><b>Task 1:</b> mô tả biểu đồ hoặc sơ đồ, ít nhất 150 từ, nên dành khoảng 20 phút.</li>
       <li><b>Task 2:</b> viết bài luận, ít nhất 250 từ, nên dành khoảng 40 phút. Task 2 có trọng số gấp đôi Task 1.</li>
@@ -44,17 +45,17 @@
   </div>
   <div id="done"></div>
 </main>
-<script src="assets/content.js?v=20261024a"></script>
-<script src="assets/app.js?v=20261024a"></script>
+<script src="assets/content.js?v=20261101b"></script>
+<script src="assets/app.js?v=20261101b"></script>
 <script>
 (function () {
   var T = TS, $ = T.$, sk = 'W';
   var s = T.session(); if (!s || !s.code) { location.href = 'index.html'; return; }
-  T.bar('Writing · Viết');
+  T.bar('Writing · Viết', '<p>Chuyển giữa hai bài bằng nút Task 1 và Task 2. Số từ được đếm tự động bên dưới ô viết.</p>');
   var key = T.draftKey(s.code, sk), draft = T.ls(key) || { t1: '', t2: '', tab: 1, meta: {} };
   var timer, submitting = false;
-  T.watchBlur(draft.meta);
   function save() { T.ls(key, draft); }
+  var guard = T.guard({ meta: draft.meta, name: s.name, code: s.code, save: save, onLimit: function (why) { draft.meta.end = why; submit(true); } });
   setInterval(save, 3000);
   function wc(t) { return (String(t).trim().match(/\S+/g) || []).length; }
   function count() {
@@ -80,7 +81,7 @@
   function submit(auto) {
     if (submitting) return;
     var go = function () {
-      submitting = true; timer && timer.stop(); save();
+      submitting = true; timer && timer.stop(); guard.stop(); save();
       $('#submitBtn').disabled = true; $('#submitBtn').textContent = 'Đang nộp...';
       T.api('submitW', { code: s.code, t1: draft.t1, t2: draft.t2, dev: T.dev(), meta: draft.meta }).then(function (r) {
         if (!r.ok) { $('#serr').textContent = T.err(r) + ' Bài viết vẫn được lưu trên máy.'; $('#serr').hidden = false; $('#submitBtn').disabled = false; $('#submitBtn').textContent = 'Gửi lại'; submitting = false; return; }
@@ -99,23 +100,25 @@
 
   $('#begin').onclick = function () {
     $('#err').hidden = true; $('#begin').disabled = true; $('#begin').textContent = 'Đang mở bài...';
+    guard.goFS();
     T.begin(sk, {
       ready: function (r) {
         draft.started = true; save();
         $('#p1').innerHTML = prompt(BANK.W[r.ids[0]], 1); $('#p2').innerHTML = prompt(BANK.W[r.ids[1]], 2);
         $('#t1').value = draft.t1 || ''; $('#t2').value = draft.t2 || ''; count();
-        $('#intro').hidden = true; $('#exam').hidden = false; tab(draft.tab || 1);
+        $('#intro').hidden = true; $('#exam').hidden = false; tab(draft.tab || 1); guard.start();
         timer = T.Timer($('#timer'), r.t0 + 60 * 60 * 1000, function () { submit(true); }, 300);
       },
       sync: function (r) { timer && timer.set(r.t0 + 60 * 60 * 1000); },
       wait: function () { $('#begin').textContent = 'Máy chủ chậm, đang thử lại...'; },
       fail: function (r) {
-        timer && timer.stop(); $('#exam').hidden = true; $('#intro').hidden = false;
+        timer && timer.stop(); guard.stop(); $('#exam').hidden = true; $('#intro').hidden = false;
         $('#begin').disabled = false; $('#begin').textContent = 'Bắt đầu làm bài';
         $('#err').textContent = T.err(r); $('#err').hidden = false;
       }
     });
   };
+  $('#rn').innerHTML = T.rulesNote;
   if (draft.started) { $('#intro').querySelector('h2').textContent = 'Phần Viết đang làm dở'; $('#begin').textContent = 'Làm tiếp'; }
 })();
 </script>
